@@ -220,3 +220,21 @@ fn create_mirror_graph(graph: &UndirectedGraph) -> UndirectedGraph {
     }
     mirror
 }
+
+
+#[cfg(test)]
+mod test_odd_path {
+    use crate::utility::testing::{test_s_t_trip};
+    use super::*;
+
+    fn test_path(folder: &str, file: &str) {
+        test_s_t_trip::<DerigsAlgorithm>(folder, file)
+    }
+    #[test]
+    fn test_basic_paths() {
+        test_path("small_graphs", "small1");
+        test_path("small_graphs", "small2");
+        test_path("small_graphs", "small3");
+        test_path("small_graphs", "small4");
+    }
+}

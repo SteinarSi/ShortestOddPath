@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use std::ops::Index;
 use crate::structure::graph::Graph;
 
@@ -64,5 +65,16 @@ impl Index<usize> for UndirectedGraph {
 
     fn index(&self, u: usize) -> &Self::Output {
         &self.adj_list[u]
+    }
+}
+
+impl Debug for UndirectedGraph {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut ret = String::new();
+        ret.push_str(format!("UndirectedGraph(n = {}):\n", self.n).as_str());
+        for u in self.vertices() {
+            ret.push_str(format!("  N({}) = {:?}\n", u, self[u]).as_str());
+        }
+        write!(f, "{}", ret)
     }
 }

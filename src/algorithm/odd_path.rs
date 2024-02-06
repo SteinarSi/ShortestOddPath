@@ -298,11 +298,35 @@ mod test_odd_path {
         debug(format!("{}/{}", folder, file));
         test_s_t_trip::<DerigsAlgorithm>(folder, file)
     }
-    #[test]
-    fn test_basic_paths() {
-        test_path("small_graphs", "small1");
-        test_path("small_graphs", "small2");
-        test_path("small_graphs", "small3");
-        test_path("small_graphs", "small4");
+    mod small_graphs {
+        use crate::algorithm::odd_path::test_odd_path::test_path;
+        #[test]
+        fn small1() {
+            test_path("small_graphs", "small1");
+        }
+        #[test]
+        fn small2() {
+            test_path("small_graphs", "small2");
+        }
+        #[test]
+        fn small3() {
+            test_path("small_graphs", "small3");
+        }
+        #[test]
+        fn small4() {
+            test_path("small_graphs", "small4");
+        }
+    }
+
+    mod medium_graphs {
+        use crate::algorithm::odd_path::test_odd_path::test_path;
+        #[test]
+        fn medium1() {
+            test_path("medium_graphs", "medium1");
+        }
+        #[test]
+        fn medium2() {
+            test_path("medium_graphs", "medium2");
+        }
     }
 }

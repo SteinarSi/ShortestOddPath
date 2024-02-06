@@ -5,7 +5,8 @@ use crate::structure::graph::Graph;
 use crate::structure::rooted_tree::RootedTree;
 use crate::structure::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
-
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
 pub struct DerigsAlgorithm {
     graph: UndirectedGraph,
     d_plus: Vec<Cost>,
@@ -17,11 +18,11 @@ pub struct DerigsAlgorithm {
     orig_n: usize,
     path_tree: RootedTree,
     completed: Vec<bool>,
-
-    scanned: Vec<usize>,
+    pqe: BinaryHeap<(Reverse<u64>, (usize,usize))>,
+    pqv: BinaryHeap<(Reverse<u64>, usize)>,
 }
 
-pub fn shortest_even_path(graph: UndirectedGraph, s: usize, t: usize) -> PathResult {
+pub fn shortest_odd_path(graph: UndirectedGraph, s: usize, t: usize) -> PathResult {
     DerigsAlgorithm::init((graph, s, t)).solve()
 }
 
@@ -38,15 +39,18 @@ impl Algorithm for DerigsAlgorithm {
         let mut d_minus = repeat(n, Infinite);
         let mut pred = repeat(n, None);
         let mut completed = repeat(n, false);
+        let pqe = BinaryHeap::new();
+        let mut pqv = BinaryHeap::new();
 
         d_plus[s] = Finite(0);
         for &v in mirror_graph.neighbourhood(&s) {
-            d_minus[v] = Finite(1); // Bytt med w for weighted
+            // Bytt med w for vektet
+            pqv.push((Reverse(1), v));
+            d_minus[v] = Finite(1);
             pred[v] = Some(s);
         }
         completed[s] = true;
         completed[s + graph.n()] = true;
-
 
         DerigsAlgorithm {
             graph: mirror_graph,
@@ -59,20 +63,17 @@ impl Algorithm for DerigsAlgorithm {
             orig_n: graph.n(),
             path_tree: RootedTree::new(s, n),
             completed,
-
-            scanned: Vec::new(),
+            pqe,
+            pqv,
         }
     }
 
     fn solve(&mut self) -> <Self::Pr as Problem>::Out {
-        // TODO er det riktig å bare loope her, eller er det tilfeller der Control ikke er sjefen?
-        let mut DEBUG = 20;
-        while ! self.control() {
-            DEBUG -= 1;
-            if DEBUG == 0 {
-                panic!("\nTimeout!\n");
-            }
+        if self.s == self.t {
+            return Impossible;
         }
+
+        while ! self.control() {}
 
         self.print_state();
 
@@ -109,41 +110,42 @@ impl DerigsAlgorithm {
     // Return true if the search is done. Either because we found the shortest odd s-t-path, or because none exist.
     fn control(&mut self) -> bool {
         self.print_state();
-        let d1 = self.graph
-            .vertices().into_iter()
-            .filter(|&u| ! self.completed[u] && self.d_minus[u].is_finite())
-            .map(|u| (self.d_minus[u].unwrap(), u))
-            .min();
-        let d2 = self.graph
-            .vertices().into_iter()
-            .filter(|&u| self.d_plus[u].is_finite() && self.d_minus[u].is_finite())
-            // TODO trenger en bedre måte å sammenligne dette
-            .min_by(|&u, &v| {
-                let a = (self.d_minus[u].unwrap() + self.d_plus[u].unwrap()) as f64 / 2.0;
-                let b = (self.d_minus[v].unwrap() + self.d_plus[v].unwrap()) as f64 / 2.0;
-                a.total_cmp(&b)
-            })
-            .map(|u| ((self.d_minus[u].unwrap() + self.d_plus[u].unwrap()) / 2, u));
+        let d1 = self.pqv.peek();
+        while let Some((_, (u, v))) = self.pqe.peek() {
+            if self.basis[*u] == self.basis[*v] {
+                self.pqe.pop();
+            }
+            else {
+                break;
+            }
+        }
+        let d2 =  self.pqe.peek();
 
         debug(format!("Control: \n    d1 := {:?}\n    d2 := {:?}", d1, d2));
 
-        // Find the lowest delta, but also take into account that they may not be defined. Since None < Some(0), we can't just use the built-in comparison.
-        let (delta, l) = match (d1, d2) {
+        // TODO det må da være en bedre måte å skrive dette på
+        match (d1, d2) {
             (None, None) => { return true; } // No odd path exists :(
-            (Some((delta_1, u)), Some((delta_2, v))) => {
-                if delta_1 <= delta_2 { (delta_1, u) }
-                else {(delta_2, v)}
-            },
-            (Some(x), None) => {x}
-            (None, Some(x)) => {x}
-        };
-        debug(format!("    (delta, l) := ({}, {})", delta, l));
-        if Some((delta, l)) == d1 {
-            if l == self.t { return true } // shortest odd path has been found, we can quit now
-            self.grow(l, delta);
-        }
-        else {
-            self.blossom(l, delta);
+            (Some(&(Reverse(delta_1), l)), None) => {
+                self.pqv.pop();
+                if l == self.t { return true; } // Shortest odd path has been found :)
+                self.grow(l, delta_1);
+            }
+            (None, Some(&(Reverse(delta_2), (l, k)))) => {
+                self.pqe.pop();
+                self.blossom(l, k, delta_2);
+            }
+            (Some(&(Reverse(delta_1), l)), Some(&(Reverse(delta_2), (u, v)))) => {
+                if delta_1 <= delta_2 {
+                    self.pqv.pop();
+                    if l == self.t { return true; } // Shortest odd path has been found :)
+                    self.grow(l, delta_1);
+                }
+                else {
+                    self.pqe.pop();
+                    self.blossom(u, v, delta_2);
+                }
+            }
         }
 
         return false;
@@ -151,19 +153,26 @@ impl DerigsAlgorithm {
 
     fn scan(&mut self, u: usize, bans: &Vec<usize>) {
         debug(format!("    Scan(k = {})", u));
-        self.scanned.push(u);
         let dist_u = self.d_plus[u].expect(format!("        We called self.scan({}), but self.d_plus[{}] is undefined!", u, u).as_str());
         for &v in self.graph.neighbourhood(&u) {
-            if bans.contains(&v) { continue }
-            if let Finite(dist_v) = self.d_minus[v] {
-                // swap with w for the weighted case
+            if ! self.completed[v] {
                 // TODO infeffektivt, fiks senere
-                if dist_u + 1 >= dist_v { continue }
+                if bans.contains(&v) || Finite(dist_u + 1) >= self.d_minus[v] {
+                    continue
+                }
+                debug(format!("        d_minus[{}] = {}", v, dist_u+1));
+                debug(format!("        pred[{}] = {}", v, u));
+                self.d_minus[v] = Finite(dist_u + 1);
+                self.pred[v] = Some(u);
+
+                // TODO burde kanskje fjerne v fra pqv hvis den allerede er der? Eller håndtere det i Control.
+                self.pqv.push((Reverse(dist_u + 1), v));
             }
-            debug(format!("        d_minus[{}] = {}", v, dist_u+1));
-            debug(format!("        pred[{}] = {}", v, u));
-            self.d_minus[v] = Finite(dist_u + 1);
-            self.pred[v] = Some(u);
+
+            else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v]) {
+                // TODO bytte med w for vektet
+                self.pqe.push((Reverse((dist_u + dist_v + 1) / 2), (u, v)));
+            }
         }
     }
 
@@ -186,8 +195,8 @@ impl DerigsAlgorithm {
         self.scan(k, &Vec::new());
     }
 
-    fn blossom(&mut self, l: usize, delta: u64) {
-        let (b, cycle) = self.find_cycle_base(l);
+    fn blossom(&mut self, l: usize, k: usize, delta: u64) {
+        let (b, cycle) = self.find_cycle_base(l, k);
         debug(format!("Blossom(l = {}, delta = {}), with b = {}", l, delta, b));
 
         // TODO Veldig inneffektivt, men fungerer som en MVP
@@ -206,8 +215,7 @@ impl DerigsAlgorithm {
     }
 
     // TODO hele er ekstremt ineffektiv, fiks senere
-    fn find_cycle_base(&self, l: usize) -> (usize, Vec<usize>){
-        let k = self.pred[l].expect(format!("        Tried to set k := pred[{}], but it isn't defined!", l).as_str());
+    fn find_cycle_base(&self, l: usize, k: usize) -> (usize, Vec<usize>){
         debug(format!("    Finding cycle starting at l = {}, k = {}:", l, k));
 
         let p1 = self.find_path(l);
@@ -224,7 +232,7 @@ impl DerigsAlgorithm {
         ret.extend(&p1[..p1.iter().position(|&u| u == b).unwrap()]);
         ret.extend(&p2[..p2.iter().position(|&u| u == b).unwrap()]);
 
-        println!("        Cycle: {:?}", ret);
+        debug(format!("        Cycle: {:?}", ret));
 
         (b, ret)
     }
@@ -257,7 +265,6 @@ impl DerigsAlgorithm {
 
     fn print_state(&self) {
         debug("State:".to_string());
-        debug(format!("    scanned: {:?}", self.scanned));
         debug(format!("    d_plus: {:?}", self.d_plus));
         debug(format!("    d_minus: {:?}", self.d_minus));
         debug(format!("    pred: {:?}", self.pred));

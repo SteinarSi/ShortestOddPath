@@ -23,6 +23,7 @@ pub fn test_s_t_trip<Alg>(folder: &str, file: &str)
             (Finite(cost1), Possible {cost: cost2, path: _}) => assert_eq!(cost1, cost2, "Expected to find an {}-{}-path of cost {}, but found one that costs {} instead", 0, sink, cost1, cost2),
             _ => {}
         }
+        println!("Success :-)");
     }
 }
 

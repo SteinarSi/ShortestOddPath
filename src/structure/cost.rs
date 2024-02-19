@@ -1,8 +1,9 @@
 use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Sub};
 use std::str::FromStr;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Cost {
     Infinite,
     Finite(u64)
@@ -83,5 +84,16 @@ impl FromStr for Cost {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(s.parse().map_or(Infinite, |x| Finite(x)))
+    }
+}
+
+impl Debug for Cost {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if let Finite(x) = self {
+            write!(f, "{}", x)
+        }
+        else {
+            write!(f, "∞")
+        }
     }
 }

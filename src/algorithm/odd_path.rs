@@ -7,6 +7,7 @@ use crate::structure::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::BinaryHeap;
 use std::cmp::Reverse;
+
 pub struct DerigsAlgorithm {
     graph: UndirectedGraph,
     d_plus: Vec<Cost>,
@@ -91,7 +92,7 @@ impl Algorithm for DerigsAlgorithm {
         while current != self.mirror(self.s) {
             debug(format!("    current: {}", current));
             cost += 1;
-            current = self.pred[current].expect(format!("    Tried to backtrack and find the path, but self.pred[{}] was undefined!", self.mirror(current)).as_str());
+            current = self.pred[current].expect(format!("    Tried to backtrack and find the path, but self.pred[{}] was undefined!", current).as_str());
             path.push(current);
             current = self.mirror(current);
         }
@@ -110,42 +111,44 @@ impl DerigsAlgorithm {
     // Return true if the search is done. Either because we found the shortest odd s-t-path, or because none exist.
     fn control(&mut self) -> bool {
         self.print_state();
-        let d1 = self.pqv.peek();
+        while let Some((_, u)) = self.pqv.peek() {
+            // if self.completed[self.mirror(*u)] {
+            if self.completed[*u] {
+                self.pqv.pop();
+            }
+            else { break; }
+        }
         while let Some((_, (u, v))) = self.pqe.peek() {
             if self.basis[*u] == self.basis[*v] {
                 self.pqe.pop();
             }
+            else { break; }
+        }
+        let delta_1 = self.pqv.peek().map(|(Reverse(d),_)| *d);
+        let delta_2 = self.pqe.peek().map(|(Reverse(d),_)| *d);
+
+        debug(format!("Control: \n    d1 := {:?}\n    d2 := {:?}", delta_1, delta_2));
+
+        let min_delta = vec![delta_1, delta_2]
+            .into_iter()
+            .filter(Option::is_some)
+            .map(Option::unwrap)
+            .min();
+
+        if let Some(delta) = min_delta {
+            if self.pqv.peek().is_some() && Reverse(delta) == self.pqv.peek().unwrap().0 {
+                let l = self.pqv.pop().unwrap().1;
+                if l == self.t { return true; } // Shortest odd path has been found :)
+                self.grow(l, delta);
+            }
             else {
-                break;
+                let (l, k) = self.pqe.pop().unwrap().1;
+                self.blossom(l, k, delta);
             }
         }
-        let d2 =  self.pqe.peek();
-
-        debug(format!("Control: \n    d1 := {:?}\n    d2 := {:?}", d1, d2));
-
-        // TODO det må da være en bedre måte å skrive dette på
-        match (d1, d2) {
-            (None, None) => { return true; } // No odd path exists :(
-            (Some(&(Reverse(delta_1), l)), None) => {
-                self.pqv.pop();
-                if l == self.t { return true; } // Shortest odd path has been found :)
-                self.grow(l, delta_1);
-            }
-            (None, Some(&(Reverse(delta_2), (l, k)))) => {
-                self.pqe.pop();
-                self.blossom(l, k, delta_2);
-            }
-            (Some(&(Reverse(delta_1), l)), Some(&(Reverse(delta_2), (u, v)))) => {
-                if delta_1 <= delta_2 {
-                    self.pqv.pop();
-                    if l == self.t { return true; } // Shortest odd path has been found :)
-                    self.grow(l, delta_1);
-                }
-                else {
-                    self.pqe.pop();
-                    self.blossom(u, v, delta_2);
-                }
-            }
+        else {
+            // No odd path exists :(
+            return true;
         }
 
         return false;
@@ -171,7 +174,12 @@ impl DerigsAlgorithm {
 
             else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v]) {
                 // TODO bytte med w for vektet
+                // TODO runde av opp eller ned?
                 self.pqe.push((Reverse((dist_u + dist_v + 1) / 2), (u, v)));
+                if Finite(dist_u) < self.d_minus[v] {
+                    self.d_minus[v] = Finite(dist_u + 1);
+                    self.pred[v] = Some(u);
+                }
             }
         }
     }
@@ -185,7 +193,9 @@ impl DerigsAlgorithm {
         // TODO Trenger kanskje bare å legge til den ene? Sjekk hvilken, og om det er (l, k) eller (k, l).
         self.path_tree.add_edge(k, l);
         self.completed[k] = true;
-        self.completed[l] = true;
+
+        // TODO hmmmm, legge til begge eller bare k? Eller bare l?
+        // self.completed[l] = true;
 
         // TODO Pål sier dette er en typo i papiret, skulle vært d_plus
         // self.d_minus[k] = Finite(delta);
@@ -201,15 +211,22 @@ impl DerigsAlgorithm {
 
         // TODO Veldig inneffektivt, men fungerer som en MVP
         for u in self.graph.vertices() {
-            if cycle.contains(&u) {
+            if cycle.contains(&self.basis[u]) {
                 self.basis[u] = b;
             }
         }
         for &u in &cycle {
             if ! self.is_outer(u) {
-                self.d_plus[u] = Finite(2 * delta) - self.d_minus[u];
+
+                // TODO alternativ tolkning?
+                // TODO erstatt 1 med vekten mellom l og k for vektet
+                self.d_plus[u] = self.d_plus[l] + self.d_plus[k] + Finite(1) - self.d_minus[u];
+
+                // self.d_plus[u] = Finite(2 * delta) - self.d_minus[u];
                 debug(format!("    {} is not outer, so self.d_plus[{}] = {} now", u, u, self.d_plus[u].unwrap()));
                 self.scan(u, &cycle);
+
+                self.completed[u] = true;
             }
         }
     }
@@ -219,12 +236,12 @@ impl DerigsAlgorithm {
         debug(format!("    Finding cycle starting at l = {}, k = {}:", l, k));
 
         let p1 = self.find_path(l);
-        let p2 = self.find_path(self.mirror(l));
+        let p2 = self.find_path(k);
 
         debug(format!("        path1: {:?}", p1));
         debug(format!("        path2: {:?}", p2));
 
-        let b = *p1.iter().find(|&u| p2.contains(u)).unwrap();
+        let b = *p1.iter().find(|&u| p2.contains(u)).expect("Expected these two paths to have the same base, but they don't??");
 
         debug(format!("        b: {}", b));
         let mut ret: Vec<usize> = Vec::new();
@@ -237,16 +254,20 @@ impl DerigsAlgorithm {
         (b, ret)
     }
 
+
+    // TODO dette er veldig sketchy. Skal man bare behandle alle i samme basis likt?
     fn find_path(&self, mut u: usize) -> Vec<usize> {
-        let mut ret = vec![u];
+        let mut ret = vec![self.basis[u]];
         loop {
+            if self.basis[u] != u { break; }
             if u == self.s { break; }
             u = self.mirror(u);
-            ret.push(u);
+            ret.push(self.basis[u]);
 
+            if self.basis[u] != u { break; }
             if u == self.s { break; }
-            u = self.pred[u].unwrap();
-            ret.push(u);
+            u = self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: {:?}", u, ret).as_str());
+            ret.push(self.basis[u]);
         }
         ret
     }
@@ -264,10 +285,17 @@ impl DerigsAlgorithm {
     }
 
     fn print_state(&self) {
+        let mut pqv: Vec<(Reverse<u64>,usize)> = self.pqv.clone().into_iter().collect();
+        pqv.sort();
+        let mut pqe: Vec<(Reverse<u64>, (usize,usize))> = self.pqe.clone().into_iter().collect();
+        pqe.sort();
         debug("State:".to_string());
-        debug(format!("    d_plus: {:?}", self.d_plus));
+        debug(format!("    d_plus:  {:?}", self.d_plus));
         debug(format!("    d_minus: {:?}", self.d_minus));
         debug(format!("    pred: {:?}", self.pred));
+        debug(format!("    PQV: {:?}", pqv));
+        debug(format!("    PQE: {:?}", pqe));
+        debug(format!("    Completed: {:?}", self.graph.vertices().into_iter().filter(|&u| self.completed[u]).collect::<Vec<usize>>()));
     }
 }
 
@@ -316,6 +344,10 @@ mod test_odd_path {
         fn small4() {
             test_path("small_graphs", "small4");
         }
+        #[test]
+        fn small5() {
+            test_path("small_graphs", "small5");
+        }
     }
 
     mod medium_graphs {
@@ -327,6 +359,10 @@ mod test_odd_path {
         #[test]
         fn medium2() {
             test_path("medium_graphs", "medium2");
+        }
+        #[test]
+        fn medium3() {
+            test_path("medium_graphs", "medium3");
         }
     }
 }

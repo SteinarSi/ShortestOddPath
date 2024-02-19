@@ -257,17 +257,16 @@ impl DerigsAlgorithm {
 
     // TODO dette er veldig sketchy. Skal man bare behandle alle i samme basis likt?
     fn find_path(&self, mut u: usize) -> Vec<usize> {
-        let mut ret = vec![self.basis[u]];
+        u = self.basis[u];
+        let mut ret = vec![u];
         loop {
-            if self.basis[u] != u { break; }
             if u == self.s { break; }
-            u = self.mirror(u);
-            ret.push(self.basis[u]);
+            u = self.basis[self.mirror(u)];
+            ret.push(u);
 
-            if self.basis[u] != u { break; }
             if u == self.s { break; }
-            u = self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: {:?}", u, ret).as_str());
-            ret.push(self.basis[u]);
+            u = self.basis[self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: {:?}", u, ret).as_str())];
+            ret.push(u);
         }
         ret
     }

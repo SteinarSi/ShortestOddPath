@@ -2,7 +2,6 @@ use crate::algorithm::algorithm::{Algorithm, PathResult, Problem, ShortestOddPat
 use crate::algorithm::algorithm::PathResult::{Impossible, Possible};
 use crate::structure::cost::{Cost::*, Cost};
 use crate::structure::graph::Graph;
-use crate::structure::rooted_tree::RootedTree;
 use crate::structure::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::BinaryHeap;
@@ -17,7 +16,6 @@ pub struct DerigsAlgorithm {
     s: usize,
     t: usize,
     orig_n: usize,
-    path_tree: RootedTree,
     completed: Vec<bool>,
     pqe: BinaryHeap<(Reverse<u64>, (usize,usize))>,
     pqv: BinaryHeap<(Reverse<u64>, usize)>,
@@ -62,7 +60,6 @@ impl Algorithm for DerigsAlgorithm {
             s,
             t,
             orig_n: graph.n(),
-            path_tree: RootedTree::new(s, n),
             completed,
             pqe,
             pqv,
@@ -83,7 +80,7 @@ impl Algorithm for DerigsAlgorithm {
             return Impossible;
         }
 
-        debug("\n\nAn s-t-path exists. Backtracking...".to_string());
+        debug(format!("\n\nAn {}-{}-path exists. Backtracking...", self.s, self.t));
 
         let mut cost = 0;
         let mut current = self.t;
@@ -93,6 +90,7 @@ impl Algorithm for DerigsAlgorithm {
             debug(format!("    current: {}", current));
             cost += 1;
             current = self.pred[current].expect(format!("    Tried to backtrack and find the path, but self.pred[{}] was undefined!", current).as_str());
+            debug(format!("    current: {}", current));
             path.push(current);
             current = self.mirror(current);
         }
@@ -136,11 +134,13 @@ impl DerigsAlgorithm {
             .min();
 
         if let Some(delta) = min_delta {
+            // If delta == delta_1
             if self.pqv.peek().is_some() && Reverse(delta) == self.pqv.peek().unwrap().0 {
                 let l = self.pqv.pop().unwrap().1;
                 if l == self.t { return true; } // Shortest odd path has been found :)
                 self.grow(l, delta);
             }
+            // If delta == delta_2
             else {
                 let (l, k) = self.pqe.pop().unwrap().1;
                 self.blossom(l, k, delta);
@@ -155,7 +155,7 @@ impl DerigsAlgorithm {
     }
 
     fn scan(&mut self, u: usize, bans: &Vec<usize>) {
-        debug(format!("    Scan(k = {})", u));
+        debug(format!("    Scan(k = {}, bans = {:?})", u, bans));
         let dist_u = self.d_plus[u].expect(format!("        We called self.scan({}), but self.d_plus[{}] is undefined!", u, u).as_str());
         for &v in self.graph.neighbourhood(&u) {
             if ! self.completed[v] {
@@ -172,9 +172,9 @@ impl DerigsAlgorithm {
                 self.pqv.push((Reverse(dist_u + 1), v));
             }
 
-            else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v]) {
+            else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v] && !bans.contains(&v)){
+                debug(format!("        Found candidate for blossom: ({}, {}), with delta = {}", u, v, (dist_u + dist_v + 1) / 2));
                 // TODO bytte med w for vektet
-                // TODO runde av opp eller ned?
                 self.pqe.push((Reverse((dist_u + dist_v + 1) / 2), (u, v)));
                 if Finite(dist_u) < self.d_minus[v] {
                     self.d_minus[v] = Finite(dist_u + 1);
@@ -190,8 +190,6 @@ impl DerigsAlgorithm {
 
         debug(format!("    n = {}, mirror({}) = {}", self.graph.n(), l, k));
 
-        // TODO Trenger kanskje bare å legge til den ene? Sjekk hvilken, og om det er (l, k) eller (k, l).
-        self.path_tree.add_edge(k, l);
         self.completed[k] = true;
 
         // TODO hmmmm, legge til begge eller bare k? Eller bare l?
@@ -206,9 +204,10 @@ impl DerigsAlgorithm {
     }
 
     fn blossom(&mut self, l: usize, k: usize, delta: u64) {
-        let (b, cycle) = self.find_cycle_base(l, k);
-        debug(format!("Blossom(l = {}, delta = {}), with b = {}", l, delta, b));
+        debug(format!("Blossom(l = {}, k = {}, delta = {}):", l, k, delta));
+        let (b, p1, p2) = self.find_cycle_base(l, k);
 
+        let cycle = vec![p1.clone(),p2.clone()].concat();
         // TODO Veldig inneffektivt, men fungerer som en MVP
         for u in self.graph.vertices() {
             if cycle.contains(&self.basis[u]) {
@@ -222,17 +221,38 @@ impl DerigsAlgorithm {
                 // TODO erstatt 1 med vekten mellom l og k for vektet
                 self.d_plus[u] = self.d_plus[l] + self.d_plus[k] + Finite(1) - self.d_minus[u];
 
-                // self.d_plus[u] = Finite(2 * delta) - self.d_minus[u];
                 debug(format!("    {} is not outer, so self.d_plus[{}] = {} now", u, u, self.d_plus[u].unwrap()));
                 self.scan(u, &cycle);
 
                 self.completed[u] = true;
             }
         }
+
+        if p1.len() > 0 {
+            for i in 0..p1.len()-1 {
+                let u = p1[i];
+                let v = p1[i+1];
+                if self.d_minus[v].is_infinite() {
+                    self.d_minus[v] = self.d_plus[u] + Finite(1);
+                    self.pred[v] = Some(u);
+                }
+            }
+        }
+        // TODO eksperimentelt
+        if p2.len() > 0 {
+            for i in 0..p2.len()-1 {
+                let u = p2[i];
+                let v = p2[i+1];
+                if self.d_minus[v].is_infinite() {
+                    self.d_minus[v] = self.d_plus[u] + Finite(1);
+                    self.pred[v] = Some(u);
+                }
+            }
+        }
     }
 
     // TODO hele er ekstremt ineffektiv, fiks senere
-    fn find_cycle_base(&self, l: usize, k: usize) -> (usize, Vec<usize>){
+    fn find_cycle_base(&self, l: usize, k: usize) -> (usize, Vec<usize>, Vec<usize>){
         debug(format!("    Finding cycle starting at l = {}, k = {}:", l, k));
 
         let p1 = self.find_path(l);
@@ -251,7 +271,9 @@ impl DerigsAlgorithm {
 
         debug(format!("        Cycle: {:?}", ret));
 
-        (b, ret)
+        (b, Vec::from(&p1[..p1.iter().position(|&u| u == b).unwrap()]), Vec::from(&p2[..p2.iter().position(|&u| u == b).unwrap()]))
+
+        // (b, ret)
     }
 
 
@@ -347,6 +369,10 @@ mod test_odd_path {
         fn small5() {
             test_path("small_graphs", "small5");
         }
+        #[test]
+        fn small6() {
+            test_path("small_graphs", "small6");
+        }
     }
 
     mod medium_graphs {
@@ -362,6 +388,14 @@ mod test_odd_path {
         #[test]
         fn medium3() {
             test_path("medium_graphs", "medium3");
+        }
+        #[test]
+        fn medium4() {
+            test_path("medium_graphs", "medium4");
+        }
+        #[test]
+        fn medium5() {
+            test_path("medium_graphs", "medium5");
         }
     }
 }

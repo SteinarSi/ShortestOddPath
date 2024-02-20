@@ -397,5 +397,21 @@ mod test_odd_path {
         fn medium5() {
             test_path("medium_graphs", "medium5");
         }
+        #[test]
+        fn medium6() {
+            test_path("medium_graphs", "medium6");
+        }
+    }
+
+    mod large_graphs {
+        use crate::algorithm::odd_path::test_odd_path::test_path;
+        #[test]
+        fn large1() {
+            test_path("large_graphs", "large1");
+        }
+        #[test]
+        fn large2() {
+            test_path("large_graphs", "large2");
+        }
     }
 }

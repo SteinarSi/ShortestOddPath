@@ -60,28 +60,3 @@ impl Algorithm for BasicOddWalk {
         }
     }
 }
-
-#[cfg(test)]
-mod test_odd_walk {
-    use crate::utility::testing::test_s_t_trip;
-    use super::*;
-
-    fn test_walk(folder: &str, file: &str) {
-        test_s_t_trip::<BasicOddWalk>(folder, file)
-    }
-
-    mod small_walks {
-        use crate::algorithm::odd_walk::test_odd_walk::test_walk;
-
-        fn test(name: &str) { test_walk("small_graphs", name); }
-
-        #[test]
-        fn small1() { test("small1"); }
-        #[test]
-        fn small2() { test("small2"); }
-        #[test]
-        fn small3() { test("small3"); }
-        #[test]
-        fn small4() { test("small4"); }
-    }
-}

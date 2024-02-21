@@ -13,11 +13,3 @@ pub fn format_cost(cost: Cost) -> String {
         Infinite => String::from("∞"),
     }
 }
-
-pub fn format_input_filepath(folder: &str, name: &str) -> String {
-    ["data/", folder, "/", name, "/", name, ".in"].concat()
-}
-
-pub fn format_answer_filepath(folder: &str, name: &str, problem: &str) -> String {
-    ["data/", folder, "/", name, "/", name, ".", problem].concat()
-}

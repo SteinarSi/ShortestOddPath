@@ -1,7 +1,12 @@
-use crate::algorithm::algorithm::{Algorithm, PathResult, PathResult::*, Problem};
-use crate::structure::cost::{Cost, Cost::*};
-use crate::structure::undirected_graph::UndirectedGraph;
-use crate::utility::format::{format_answer_filepath, format_input_filepath};
+// use crate::algorithm::algorithm::{Algorithm, PathResult, PathResult::*, Problem};
+// use crate::structure::cost::{Cost, Cost::*};
+// use crate::structure::undirected_graph::UndirectedGraph;
+// use crate::utility::format::{format_answer_filepath, format_input_filepath};
+
+use shortest_odd_path::algorithm::algorithm::{Algorithm, PathResult, Problem};
+use shortest_odd_path::algorithm::algorithm::PathResult::*;
+use shortest_odd_path::structure::cost::*;
+use shortest_odd_path::structure::undirected_graph::UndirectedGraph;
 
 type Answer = (usize, Cost);
 
@@ -25,6 +30,14 @@ pub fn test_s_t_trip<Alg>(folder: &str, name: &str)
         }
         println!("Success :-)");
     }
+}
+
+fn format_input_filepath(folder: &str, name: &str) -> String {
+    ["data/", folder, "/", name, "/", name, ".in"].concat()
+}
+
+fn format_answer_filepath(folder: &str, name: &str, problem: &str) -> String {
+    ["data/", folder, "/", name, "/", name, ".", problem].concat()
 }
 
 fn parse_answers(ans: String) -> Vec<Answer> {

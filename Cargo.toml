@@ -11,3 +11,7 @@ criterion = "0.5.1"
 [[bench]]
 name = "odd_walk"
 harness = false
+
+[[bench]]
+name = "odd_path"
+harness = false

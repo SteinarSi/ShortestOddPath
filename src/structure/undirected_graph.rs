@@ -48,8 +48,8 @@ impl Graph<usize, usize> for UndirectedGraph {
 impl From<String> for UndirectedGraph {
     fn from(value: String) -> Self {
         let err = &format!("Could not parse the following as an UndirectedGraph: \n{}", value);
-        let mut ls = value.lines();
-        let n = ls.next().expect(err).split(' ').next().expect(err).parse().expect(err);
+        let mut ls = value.lines().filter(|&l| ! l.trim_start().starts_with("%"));
+        let n = ls.next().expect("No n :(").split(' ').next().expect(err).parse().expect(err);
         let mut ret = UndirectedGraph::new(n);
         for mut line in ls.map(|l| l.split(' ')) {
             let u = line.next().expect(err).parse().expect(err);

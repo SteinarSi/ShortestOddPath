@@ -16,6 +16,10 @@ pub struct BasicOddWalk {
     queue: VecDeque<(usize, u64)>,
 }
 
+pub fn shortest_odd_walk(graph: UndirectedGraph, s: usize, t: usize) -> PathResult {
+    BasicOddWalk::init((graph, s, t)).solve()
+}
+
 impl Algorithm for BasicOddWalk {
     type Pr = ShortestOddWalk;
 

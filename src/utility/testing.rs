@@ -5,14 +5,14 @@ use crate::utility::format::{format_answer_filepath, format_input_filepath};
 
 type Answer = (usize, Cost);
 
-pub fn test_s_t_trip<Alg>(folder: &str, file: &str)
+pub fn test_s_t_trip<Alg>(folder: &str, name: &str)
     where Alg: Algorithm,
           <Alg as Algorithm>::Pr: Problem<In = (UndirectedGraph, usize, usize), Out = PathResult>
 {
-    let path = format_input_filepath(folder, file);
+    let path = format_input_filepath(folder, name);
     let input = std::fs::read_to_string(&path).expect(&format!("Could not find graph: {}", path));
     let graph = UndirectedGraph::from(input);
-    let answers: Vec<Answer> = parse_answers(std::fs::read_to_string(&format_answer_filepath(folder, file, &Alg::Pr::name()))
+    let answers: Vec<Answer> = parse_answers(std::fs::read_to_string(&format_answer_filepath(folder, name, &Alg::Pr::name()))
         .expect("Answers not found"));
 
     for (sink, expected) in answers {

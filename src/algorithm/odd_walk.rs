@@ -69,11 +69,19 @@ mod test_odd_walk {
     fn test_walk(folder: &str, file: &str) {
         test_s_t_trip::<BasicOddWalk>(folder, file)
     }
-    #[test]
-    fn test_basic_walks() {
-        test_walk("small_graphs", "small1");
-        test_walk("small_graphs", "small2");
-        test_walk("small_graphs", "small3");
-        test_walk("small_graphs", "small4");
+
+    mod small_walks {
+        use crate::algorithm::odd_walk::test_odd_walk::test_walk;
+
+        fn test(name: &str) { test_walk("small_graphs", name); }
+
+        #[test]
+        fn small1() { test("small1"); }
+        #[test]
+        fn small2() { test("small2"); }
+        #[test]
+        fn small3() { test("small3"); }
+        #[test]
+        fn small4() { test("small4"); }
     }
 }

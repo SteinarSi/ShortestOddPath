@@ -1,8 +1,3 @@
-// use crate::algorithm::algorithm::{Algorithm, PathResult, PathResult::*, Problem};
-// use crate::structure::cost::{Cost, Cost::*};
-// use crate::structure::undirected_graph::UndirectedGraph;
-// use crate::utility::format::{format_answer_filepath, format_input_filepath};
-
 use shortest_odd_path::algorithm::algorithm::{Algorithm, PathResult, Problem};
 use shortest_odd_path::algorithm::algorithm::PathResult::*;
 use shortest_odd_path::structure::cost::*;

@@ -1,4 +1,4 @@
-import networkx as nx                 # pip install networkx
+import networkx as nx                 # pip install networkx scipy
 import matplotlib.pyplot as plt       # pip install matplotlib
 import os
 
@@ -19,7 +19,7 @@ def read_graph(path):
     with open(path, 'r') as f:
         _ = int(f.readline())
         g = nx.Graph()
-        for uv in ([int(u) for u in uv.split()] for uv in f.readlines()):
+        for uv in ([int(u) for u in uv.split()] for uv in f.readlines() if not uv.startswith('%')):
             if len(uv) == 2:
                 u, v = uv
                 g.add_edge(u, v)

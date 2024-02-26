@@ -79,6 +79,15 @@ impl From<Option<u64>> for Cost {
     }
 }
 
+impl <E> From<Result<u64, E>> for Cost {
+    fn from(value: Result<u64, E>) -> Self {
+        match value {
+            Err(_) => Infinite,
+            Ok(x) => Finite(x),
+        }
+    }
+}
+
 impl FromStr for Cost {
     type Err = ();
 

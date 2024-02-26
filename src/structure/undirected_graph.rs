@@ -6,12 +6,14 @@ use crate::structure::graph::Graph;
 pub struct UndirectedGraph {
     adj_list: Vec<Vec<usize>>,
     n: usize,
+    m: usize,
 }
 impl UndirectedGraph {
     pub fn new(n: usize) -> Self {
         UndirectedGraph {
             adj_list: (0..n).map(|_| Vec::new()).collect(),
             n,
+            m: 0,
         }
     }
 }
@@ -19,6 +21,9 @@ impl UndirectedGraph {
 impl Graph<usize, usize> for UndirectedGraph {
     fn n(&self) -> usize {
         self.n
+    }
+    fn m(&self) -> usize {
+        self.m
     }
 
     fn vertices(&self) -> Vec<usize> {
@@ -34,6 +39,7 @@ impl Graph<usize, usize> for UndirectedGraph {
     fn add_edge(&mut self, u: usize, v: usize) {
         self.adj_list[u].push(v);
         self.adj_list[v].push(u);
+        self.m = self.m + 1;
     }
 
     fn add_edge_from_str(&mut self, edge: &str) -> Option<()> {
@@ -49,7 +55,7 @@ impl From<String> for UndirectedGraph {
     fn from(value: String) -> Self {
         let err = &format!("Could not parse the following as an UndirectedGraph: \n{}", value);
         let mut ls = value.lines().filter(|&l| ! l.trim_start().starts_with("%"));
-        let n = ls.next().expect("No n :(").split(' ').next().expect(err).parse().expect(err);
+        let n = ls.next().expect(err).split(' ').next().expect(err).parse().expect(err);
         let mut ret = UndirectedGraph::new(n);
         for mut line in ls.map(|l| l.split(' ')) {
             let u = line.next().expect(err).parse().expect(err);

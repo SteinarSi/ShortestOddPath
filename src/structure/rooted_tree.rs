@@ -23,6 +23,7 @@ impl Graph<usize, usize> for RootedTree {
     fn n(&self) -> usize {
         self.n
     }
+    fn m(&self) -> usize { self.n-1 }
 
     fn vertices(&self) -> Vec<usize> {
         self.vertices.clone().into_iter().collect()

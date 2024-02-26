@@ -4,6 +4,7 @@ pub trait Graph<V, E>: From<String>
           E: PartialEq + Clone
 {
     fn n(&self) -> usize;
+    fn m(&self) -> usize;
     fn vertices(&self) -> Vec<V>;
     #[allow(non_snake_case)]
     fn V(&self) -> Vec<V> {

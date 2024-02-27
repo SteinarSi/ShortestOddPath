@@ -17,6 +17,19 @@ impl UndirectedGraph {
             m: 0,
         }
     }
+
+    pub fn remove_edge(&mut self, (u,v): &(usize,usize)) {
+        let len = self.adj_list[*u].len();
+        self.adj_list[*u].retain(|w| w != v);
+        self.adj_list[*v].retain(|w| w != u);
+        if len != self.adj_list[*u].len() {
+            self.m = self.m - 1;
+        }
+    }
+    pub(crate) unsafe fn add_directed_edge(&mut self, u: usize, v: usize) {
+        self.adj_list[u].push(v);
+        self.m = self.m + 1;
+    }
 }
 
 impl Graph<usize, usize> for UndirectedGraph {

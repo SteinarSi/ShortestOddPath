@@ -2,6 +2,7 @@ use std::str::FromStr;
 use shortest_odd_path::algorithm::bottleneck_path::shortest_bottleneck_path;
 use shortest_odd_path::algorithm::odd_path::shortest_odd_path;
 use shortest_odd_path::algorithm::odd_walk::shortest_odd_walk;
+use shortest_odd_path::algorithm::two_disjoint_paths::two_disjoint_paths;
 use shortest_odd_path::structure::cost::{Cost, Finite, Infinite};
 use shortest_odd_path::structure::path_result::{PathResult, PathResult::*};
 use shortest_odd_path::structure::undirected_graph::UndirectedGraph;
@@ -100,6 +101,38 @@ impl Problem for ShortestBottleneckPath {
 
     fn compute(graph: &UndirectedGraph, (source, sink, (u,v), _): &Self::Query) -> Self::Output {
         shortest_bottleneck_path(graph, *source, *sink, (*u,*v))
+    }
+}
+
+pub struct TwoDisjointPaths;
+impl Problem for TwoDisjointPaths {
+    type Output = Option<(Vec<usize>, Vec<usize>)>;
+    type Query = ((usize, usize), (usize, usize), Cost);
+    fn name() -> String { String::from("disjoint") }
+    fn parse_query<F: FromStr>(query: &str) -> Option<Self::Query> {
+        let mut words = query.split(' ');
+        Some((
+             (words.next()?.parse().ok()?, words.next()?.parse().ok()?),
+             (words.next()?.parse().ok()?, words.next()?.parse().ok()?),
+            Cost::from(words.next()?.parse())
+        ))
+    }
+    fn verify_answer(graph: &UndirectedGraph, ((s1, t1), (s2,t2), cost): &Self::Query, actual: &Self::Output) {
+        match (cost, actual) {
+            (Finite(_), None) => panic!("Could not find two vertex-disjoint paths, but it *should* be possible!"),
+            (Infinite, Some((p1, p2))) => panic!("We didn't expect to find two vertex-disjoint paths from {} to {} and from {} to {}, but we did anyway: \n{:?}\nand\n{:?} ", s1, t1, s2, t2, p1,p2),
+            (Finite(c), Some((p1,p2))) => {
+                assert!( ! p1.iter().any(|u| p2.contains(&u)), "The two paths were supposed to use different vertices, but they don't:\n{:?}\nand\n{:?}", p1,p2);
+                let cost = (p1.len() + p2.len() - 2) as u64;
+                assert_eq!(*c, cost, "Expected two paths from {} to {} and from {} to {} with a combined lenght of {}, but found two of length {} instead!\n\n{:?}\nand\n{:?}", s1, t1, s2, t2, c, cost, p1, p2);
+                verify_path(&graph, 0, 0, p1, *s1, *t1);
+                verify_path(&graph, 0, 0, p2, *s2, *t2);
+            }
+            _ => {}
+        }
+    }
+    fn compute(graph: &UndirectedGraph, (p1, p2, _): &Self::Query) -> Self::Output {
+        two_disjoint_paths(graph, *p1, *p2)
     }
 }
 

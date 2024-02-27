@@ -6,7 +6,7 @@ pub fn meta_test<Pr>(folder: &str, name: &str)
     where Pr: Problem,
 {
     let queries: Vec<Pr::Query> = std::fs::read_to_string(format_answer_filepath::<Pr>(folder, name))
-        .expect(&format!("Could not find the queries: {}", format_input_filepath(folder, name)))
+        .expect(&format!("Could not find the queries: {}", format_answer_filepath::<Pr>(folder, name)))
         .lines()
         .map(|line| Pr::parse_query::<usize>(line).expect("Could not parse query :-("))
         .collect();

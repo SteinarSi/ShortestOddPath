@@ -1,3 +1,4 @@
+use std::str::Split;
 
 pub trait Graph<V, E>: From<String>
     where V: PartialEq + Clone,
@@ -15,7 +16,15 @@ pub trait Graph<V, E>: From<String>
     fn N(&self, u: &V) -> &Vec<E> {
         self.neighbourhood(u)
     }
-    fn set_neighbourhood(&mut self, u: V, neigh: Vec<E>);
     fn add_edge(&mut self, u: V, e: E);
-    fn add_edge_from_str(&mut self, edge: &str) -> Option<()>;
+    fn parse_vertex(&self, rs: &mut Split<char>) -> Result<usize, String> {
+        let next = rs.next().ok_or("Expected an unsigned integer here, but found nothing!")?;
+        let u = next.parse().or(Err(format!("Could not read '{}' as an unsigned integer!", next)))?;
+        if u >= self.n() {
+            Err(format!("The parsed vertex {} is too large for a graph of size {}", u, self.n()))
+        }
+        else {
+            Ok(u)
+        }
+    }
 }

@@ -130,8 +130,7 @@ impl DerigsAlgorithm {
 
         let min_delta = vec![delta_1, delta_2]
             .into_iter()
-            .filter(Option::is_some)
-            .map(Option::unwrap)
+            .flatten()
             .min();
 
         if let Some(delta) = min_delta {
@@ -326,13 +325,12 @@ fn create_mirror_graph(graph: &UndirectedGraph, s: usize, t: usize) -> Undirecte
     let new_n = orig_n * 2;
     let mut mirror = UndirectedGraph::new(new_n);
     for u in graph.vertices() {
-        mirror.set_neighbourhood(u, graph[u].clone());
+        mirror[u] = graph[u].clone();
         if u != s && u != t {
-            mirror.set_neighbourhood(u + orig_n,
-                 graph[u].iter()
+            mirror[u + orig_n] = graph[u].iter()
                 .filter(|&&v| v != s && v != t)
                 .map(|v| v + orig_n)
-                .collect());
+                .collect()
         }
     }
     mirror

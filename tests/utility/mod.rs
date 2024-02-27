@@ -1,5 +1,4 @@
-use crate::utility::problem::{Problem};
-use shortest_odd_path::structure::undirected_graph::UndirectedGraph;
+use crate::utility::problem::Problem;
 
 pub mod problem;
 
@@ -11,8 +10,10 @@ pub fn meta_test<Pr>(folder: &str, name: &str)
         .lines()
         .map(|line| Pr::parse_query::<usize>(line).expect("Could not parse query :-("))
         .collect();
-    let graph = UndirectedGraph::from(std::fs::read_to_string(&format_input_filepath(folder, name))
-        .expect(&format!("Could not find graph: {}", format_input_filepath(folder, name))));
+    let graph = std::fs::read_to_string(&format_input_filepath(folder, name))
+        .expect(&format!("Could not find graph: {}", format_input_filepath(folder, name)))
+        .parse()
+        .expect("Could not parse the graph");
     for query in queries {
         Pr::verify_answer(&query, &Pr::compute(&graph, &query));
     }

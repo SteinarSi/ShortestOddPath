@@ -40,7 +40,7 @@ impl Problem for ShortestOddWalk {
         }
     }
     fn compute(graph: &UndirectedGraph, (sink, _): &Self::Query) -> Self::Output {
-        shortest_odd_walk(graph.clone(), 0, *sink)
+        shortest_odd_walk(graph, 0, *sink)
     }
 }
 
@@ -69,7 +69,7 @@ impl Problem for ShortestOddPath {
         }
     }
     fn compute(graph: &UndirectedGraph, (sink, _): &Self::Query) -> Self::Output {
-        shortest_odd_path(graph.clone(), 0, *sink)
+        shortest_odd_path(graph, 0, *sink)
     }
 }
 pub struct ShortestBottleneckPath;

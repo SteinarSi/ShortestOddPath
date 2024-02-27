@@ -13,7 +13,7 @@ In: an undirected graph G, and two vertices s,t in V(G)
 Out: the shortest s-t-walk in G, that uses an odd number of edges
 */
 
-pub fn shortest_odd_walk(graph: UndirectedGraph, s: usize, t: usize) -> PathResult {
+pub fn shortest_odd_walk(graph: &UndirectedGraph, s: usize, t: usize) -> PathResult {
     let n = graph.n();
     let mut even_dist: Vec<Cost> = repeat(n, Infinite);
     even_dist[s] = Finite(0);

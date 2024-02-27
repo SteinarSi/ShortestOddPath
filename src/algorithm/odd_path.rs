@@ -26,13 +26,13 @@ In: an undirected graph G, two vertices s,t in V(G)
 Out: the shortest s-t-path in G that uses an odd number of edges, if one exists.
 */
 
-pub fn shortest_odd_path(graph: UndirectedGraph, s: usize, t: usize) -> PathResult {
+pub fn shortest_odd_path(graph: &UndirectedGraph, s: usize, t: usize) -> PathResult {
     DerigsAlgorithm::init(graph, s, t).solve()
 }
 
 impl DerigsAlgorithm {
-    fn init(graph: UndirectedGraph, s: usize, t: usize) -> Self where Self: Sized {
-        let mirror_graph = create_mirror_graph(&graph, s, t);
+    fn init(graph: &UndirectedGraph, s: usize, t: usize) -> Self where Self: Sized {
+        let mirror_graph = create_mirror_graph(graph, s, t);
         let n = mirror_graph.n();
 
         debug(format!("Looking for an odd {}-{}-path here:\n{:?}\n", s, t, mirror_graph));

@@ -4,7 +4,7 @@ use shortest_odd_path::structure::path_result::PathResult;
 use shortest_odd_path::structure::graph::Graph;
 use shortest_odd_path::structure::undirected_graph::UndirectedGraph;
 
-pub fn bench_trips(c: &mut Criterion, groupname: &str, alg: fn(UndirectedGraph, usize, usize) -> PathResult) {
+pub fn bench_trips(c: &mut Criterion, groupname: &str, alg: fn(&UndirectedGraph, usize, usize) -> PathResult) {
     let mut group: BenchmarkGroup<WallTime> = c.benchmark_group(groupname);
     group.sample_size(10);
     let inputs = [
@@ -14,7 +14,7 @@ pub fn bench_trips(c: &mut Criterion, groupname: &str, alg: fn(UndirectedGraph, 
     for input in inputs {
         let (graph, s, t) = read_input(&["data/real_graphs/", input].concat());
         group.bench_function(BenchmarkId::from_parameter(input), |b| {
-            b.iter(|| alg(graph.clone(), s, t));
+            b.iter(|| alg(&graph, s, t));
         });
     }
 }

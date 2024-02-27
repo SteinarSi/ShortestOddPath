@@ -13,7 +13,7 @@ Out: the shortest s-t-path in G that passes through (u,v), if one exists
 
 pub fn shortest_bottleneck_path(graph: &UndirectedGraph, s: usize, t: usize, bottleneck: (usize,usize)) -> PathResult {
     let split = split_edges(&graph, &BTreeSet::from([bottleneck]));
-    match shortest_odd_path(split, s, t) {
+    match shortest_odd_path(&split, s, t) {
         Impossible => Impossible,
         Possible {cost: _, path} => {
             let p: Vec<usize> = path.into_iter().filter(|&u| u < graph.n()).collect();

@@ -1,6 +1,6 @@
 use criterion::{BenchmarkGroup, BenchmarkId, Criterion};
 use criterion::measurement::WallTime;
-use shortest_odd_path::algorithm::algorithm::PathResult;
+use shortest_odd_path::structure::path_result::PathResult;
 use shortest_odd_path::structure::graph::Graph;
 use shortest_odd_path::structure::undirected_graph::UndirectedGraph;
 
@@ -21,7 +21,6 @@ pub fn bench_trips(c: &mut Criterion, groupname: &str, alg: fn(UndirectedGraph, 
 
 pub fn read_input(path: &str) -> (UndirectedGraph, usize, usize) {
     let input = std::fs::read_to_string(path).expect("Could not read the graph :-(");
-    // let input = String::from("3\n0 1\n1 2\n");
     let graph = UndirectedGraph::from(input);
     let t = graph.n()-1;
     (graph, 0, t)

@@ -1,5 +1,4 @@
-use crate::algorithm::algorithm::{Algorithm, PathResult, Problem, ShortestOddPath};
-use crate::algorithm::algorithm::PathResult::{Impossible, Possible};
+use crate::structure::path_result::{PathResult, PathResult::*};
 use crate::structure::cost::{Cost::*, Cost};
 use crate::structure::graph::Graph;
 use crate::structure::undirected_graph::UndirectedGraph;
@@ -21,14 +20,18 @@ pub struct DerigsAlgorithm {
     pqv: BinaryHeap<(Reverse<u64>, usize)>,
 }
 
+/**
+Problem: Shortest Odd Path
+In: an undirected graph G, two vertices s,t in V(G)
+Out: the shortest s-t-path in G that uses an odd number of edges, if one exists.
+*/
+
 pub fn shortest_odd_path(graph: UndirectedGraph, s: usize, t: usize) -> PathResult {
-    DerigsAlgorithm::init((graph, s, t)).solve()
+    DerigsAlgorithm::init(graph, s, t).solve()
 }
 
-impl Algorithm for DerigsAlgorithm {
-    type Pr = ShortestOddPath;
-
-    fn init((graph, s, t): <Self::Pr as Problem>::In) -> Self where Self: Sized {
+impl DerigsAlgorithm {
+    fn init(graph: UndirectedGraph, s: usize, t: usize) -> Self where Self: Sized {
         let mirror_graph = create_mirror_graph(&graph, s, t);
         let n = mirror_graph.n();
 
@@ -66,7 +69,7 @@ impl Algorithm for DerigsAlgorithm {
         }
     }
 
-    fn solve(&mut self) -> <Self::Pr as Problem>::Out {
+    fn solve(&mut self) -> PathResult {
         if self.s == self.t {
             return Impossible;
         }
@@ -104,8 +107,6 @@ impl Algorithm for DerigsAlgorithm {
             path
         }
     }
-}
-impl DerigsAlgorithm {
     // Return true if the search is done. Either because we found the shortest odd s-t-path, or because none exist.
     fn control(&mut self) -> bool {
         self.print_state();

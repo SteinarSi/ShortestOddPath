@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
-use crate::algorithm::algorithm::{PathResult, PathResult::*};
 use crate::algorithm::odd_path::shortest_odd_path;
 use crate::algorithm::utility::split_edges;
 use crate::structure::graph::Graph;
+use crate::structure::path_result::{PathResult, PathResult::*};
 use crate::structure::undirected_graph::UndirectedGraph;
 
 /**

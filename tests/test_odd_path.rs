@@ -1,12 +1,11 @@
-use shortest_odd_path::algorithm::odd_path::DerigsAlgorithm;
+use crate::utility::problem::ShortestOddPath;
 use shortest_odd_path::utility::misc::debug;
-use crate::utility::test_s_t_trip;
-
+use crate::utility::meta_test;
 mod utility;
 
 fn test_path(folder: &str, name: &str) {
     debug(format!("{}/{}", folder, name));
-    test_s_t_trip::<DerigsAlgorithm>(folder, name)
+    meta_test::<ShortestOddPath>(folder, name)
 }
 mod small_paths {
     use crate::test_path;

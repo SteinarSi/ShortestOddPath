@@ -1,14 +1,13 @@
+use crate::structure::path_result::{PathResult, PathResult::*};
 use crate::structure::{
     undirected_graph::UndirectedGraph,
     graph::Graph
 };
 use std::collections::VecDeque;
 use std::iter;
-use crate::algorithm::algorithm::{Algorithm, PathResult, PathResult::*, ShortestOddWalk};
 use crate::structure::cost::{Cost, Finite, Infinite};
 
 pub struct BasicOddWalk {
-    start: usize,
     end: usize,
     graph: UndirectedGraph,
     odd_dist: Vec<Cost>,
@@ -16,19 +15,23 @@ pub struct BasicOddWalk {
     queue: VecDeque<(usize, u64)>,
 }
 
+/**
+Problem: Shortest Odd Walk
+In: an undirected graph G, and two vertices s,t in V(G)
+Out: the shortest s-t-walk in G, that uses an odd number of edges
+*/
+
 pub fn shortest_odd_walk(graph: UndirectedGraph, s: usize, t: usize) -> PathResult {
-    BasicOddWalk::init((graph, s, t)).solve()
+    BasicOddWalk::init(graph, s, t).solve()
 }
 
-impl Algorithm for BasicOddWalk {
-    type Pr = ShortestOddWalk;
+impl BasicOddWalk {
 
-    fn init((graph, start, end): (UndirectedGraph, usize, usize)) -> Self where Self: Sized {
+    fn init(graph: UndirectedGraph, start: usize, end: usize) -> Self {
         let mut even_dist: Vec<Cost> = iter::repeat_with(|| Infinite).take(graph.n()).collect();
         let n = graph.n();
         even_dist[start] = Finite(0);
         BasicOddWalk {
-            start,
             end,
             graph,
             odd_dist: iter::repeat_with(|| Infinite).take(n).collect(),

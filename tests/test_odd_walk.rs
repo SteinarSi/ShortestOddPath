@@ -1,16 +1,10 @@
 mod utility;
 
-use shortest_odd_path::algorithm::odd_walk::BasicOddWalk;
-use crate::utility::test_s_t_trip;
-
-
-#[test]
-fn it_tests() {
-    assert_eq!(2, 1+1);
-}
+use crate::utility::problem::ShortestOddWalk;
+use crate::utility::meta_test;
 
 fn test_walk(folder: &str, file: &str) {
-    test_s_t_trip::<BasicOddWalk>(folder, file)
+    meta_test::<ShortestOddWalk>(folder, file)
 }
 
 mod small_walks {

@@ -15,7 +15,7 @@ pub fn meta_test<Pr>(folder: &str, name: &str)
         .parse()
         .expect("Could not parse the graph");
     for query in queries {
-        Pr::verify_answer(&query, &Pr::compute(&graph, &query));
+        Pr::verify_answer(&graph, &query, &Pr::compute(&graph, &query));
     }
     println!("Success :-)")
 }

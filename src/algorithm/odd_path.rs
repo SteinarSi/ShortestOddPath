@@ -111,7 +111,6 @@ impl DerigsAlgorithm {
     fn control(&mut self) -> bool {
         self.print_state();
         while let Some((_, u)) = self.pqv.peek() {
-            // if self.completed[self.mirror(*u)] {
             if self.completed[*u] {
                 self.pqv.pop();
             }
@@ -154,25 +153,22 @@ impl DerigsAlgorithm {
         return false;
     }
 
-    fn scan(&mut self, u: usize, bans: &Vec<usize>) {
-        debug(format!("    Scan(k = {}, bans = {:?})", u, bans));
+    fn scan(&mut self, u: usize) {
+        self.completed[u] = true;
+        debug(format!("    Scan(k = {}", u));
         let dist_u = self.d_plus[u].expect(format!("        We called self.scan({}), but self.d_plus[{}] is undefined!", u, u).as_str());
         for &v in self.graph.neighbourhood(&u) {
             if ! self.completed[v] {
-                // TODO infeffektivt, fiks senere
-                if bans.contains(&v) || Finite(dist_u + 1) >= self.d_minus[v] {
-                    continue
-                }
+                if Finite(dist_u + 1) >= self.d_minus[v] { continue }
+
                 debug(format!("        d_minus[{}] = {}", v, dist_u+1));
                 debug(format!("        pred[{}] = {}", v, u));
                 self.d_minus[v] = Finite(dist_u + 1);
                 self.pred[v] = Some(u);
-
-                // TODO burde kanskje fjerne v fra pqv hvis den allerede er der? Eller håndtere det i Control.
                 self.pqv.push((Reverse(dist_u + 1), v));
             }
 
-            else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v] && !bans.contains(&v)){
+            else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v]){
                 debug(format!("        Found candidate for blossom: ({}, {}), with delta = {}", u, v, (dist_u + dist_v + 1) / 2));
                 // TODO bytte med w for vektet
                 self.pqe.push((Reverse((dist_u + dist_v + 1) / 2), (u, v)));
@@ -187,66 +183,43 @@ impl DerigsAlgorithm {
     fn grow(&mut self, l: usize, delta: u64) {
         debug(format!("Grow(l = {}, delta = {})", l, delta));
         let k = self.mirror(l);
-
         debug(format!("    n = {}, mirror({}) = {}", self.graph.n(), l, k));
-
-        self.completed[k] = true;
-
-        // TODO hmmmm, legge til begge eller bare k? Eller bare l?
-        // self.completed[l] = true;
-
-        // TODO Pål sier dette er en typo i papiret, skulle vært d_plus
-        // self.d_minus[k] = Finite(delta);
-        // TODO dette må seriøst dobbelsjekkes
         self.d_plus[k] = Finite(delta);
-
-        self.scan(k, &Vec::new());
+        self.scan(k);
     }
 
     fn blossom(&mut self, l: usize, k: usize, delta: u64) {
         debug(format!("Blossom(l = {}, k = {}, delta = {}):", l, k, delta));
         let (b, p1, p2) = self.find_cycle_base(l, k);
 
-        let cycle = vec![p1.clone(),p2.clone()].concat();
         // TODO Veldig inneffektivt, men fungerer som en MVP
         for u in self.graph.vertices() {
-            if cycle.contains(&self.basis[u]) {
+            if p1.contains(&self.basis[u]) || p2.contains(&self.basis[u]) {
                 self.basis[u] = b;
             }
         }
-        for &u in &cycle {
+
+        // TODO erstatt 1 med vekten mellom l og k for vektet
+        let two_delta = self.d_plus[l] + self.d_plus[k] + Finite(1);
+        self.set_cycle_path_values(&p1, two_delta);
+        self.set_cycle_path_values(&p2, two_delta);
+    }
+
+    fn set_cycle_path_values(&mut self, path: &Vec<usize>, two_delta: Cost) {
+        for i in 0..path.len() {
+            let u = path[i];
+            if i < path.len()-1 {
+                let v = path[i + 1];
+                if self.d_minus[v].is_infinite() {
+                    debug(format!("    {} has no prev, so d_minus[{}] = {:?}, pred[{}] = {} now", v, v, self.d_plus[u] + Finite(1), v, u));
+                    self.d_minus[v] = self.d_plus[u] + Finite(1);
+                    self.pred[v] = Some(u);
+                }
+            }
             if ! self.is_outer(u) {
-
-                // TODO alternativ tolkning?
-                // TODO erstatt 1 med vekten mellom l og k for vektet
-                self.d_plus[u] = self.d_plus[l] + self.d_plus[k] + Finite(1) - self.d_minus[u];
-
+                self.d_plus[u] = two_delta - self.d_minus[u];
                 debug(format!("    {} is not outer, so self.d_plus[{}] = {} now", u, u, self.d_plus[u].unwrap()));
-                self.scan(u, &cycle);
-
-                self.completed[u] = true;
-            }
-        }
-
-        if p1.len() > 0 {
-            for i in 0..p1.len()-1 {
-                let u = p1[i];
-                let v = p1[i+1];
-                if self.d_minus[v].is_infinite() {
-                    self.d_minus[v] = self.d_plus[u] + Finite(1);
-                    self.pred[v] = Some(u);
-                }
-            }
-        }
-        // TODO eksperimentelt
-        if p2.len() > 0 {
-            for i in 0..p2.len()-1 {
-                let u = p2[i];
-                let v = p2[i+1];
-                if self.d_minus[v].is_infinite() {
-                    self.d_minus[v] = self.d_plus[u] + Finite(1);
-                    self.pred[v] = Some(u);
-                }
+                self.scan(u);
             }
         }
     }
@@ -257,23 +230,17 @@ impl DerigsAlgorithm {
 
         let p1 = self.find_path(l);
         let p2 = self.find_path(k);
+        let b = *p1.iter().find(|&u| p2.contains(u)).expect("Expected these two paths to have the same base, but they don't??");
 
         debug(format!("        path1: {:?}", p1));
         debug(format!("        path2: {:?}", p2));
-
-        let b = *p1.iter().find(|&u| p2.contains(u)).expect("Expected these two paths to have the same base, but they don't??");
-
         debug(format!("        b: {}", b));
-        let mut ret: Vec<usize> = Vec::new();
-        ret.push(b);
-        ret.extend(&p1[..p1.iter().position(|&u| u == b).unwrap()]);
-        ret.extend(&p2[..p2.iter().position(|&u| u == b).unwrap()]);
 
-        debug(format!("        Cycle: {:?}", ret));
-
-        (b, Vec::from(&p1[..p1.iter().position(|&u| u == b).unwrap()]), Vec::from(&p2[..p2.iter().position(|&u| u == b).unwrap()]))
-
-        // (b, ret)
+        (
+            b,
+            Vec::from(&p1[..p1.iter().position(|&u| u == b).unwrap()]),
+            Vec::from(&p2[..p2.iter().position(|&u| u == b).unwrap()]),
+        )
     }
 
 

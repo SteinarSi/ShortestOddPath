@@ -190,7 +190,8 @@ impl DerigsAlgorithm {
 
     fn blossom(&mut self, l: usize, k: usize, delta: u64) {
         debug(format!("Blossom(l = {}, k = {}, delta = {}):", l, k, delta));
-        let (b, p1, p2) = self.find_cycle_base(l, k);
+
+        let (b, p1, p2) = self.backtrack_cycle(l, k);
 
         // TODO Veldig inneffektivt, men fungerer som en MVP
         for u in self.graph.vertices() {
@@ -205,59 +206,71 @@ impl DerigsAlgorithm {
         self.set_cycle_path_values(&p2, two_delta);
     }
 
+    fn backtrack_cycle(&self, l: usize, k: usize) -> (usize, Vec<usize>, Vec<usize>) {
+        let mut u = self.basis[l];
+        let mut v= self.basis[k];
+        if self.d_plus[u] < self.d_plus[v] {
+            u = self.basis[k];
+            v = self.basis[l];
+        }
+        let mut p1 = Vec::new();
+        let mut p2 = Vec::new();
+        while self.d_plus[u] > self.d_plus[v] {
+            debug(format!("self.d_plus[{}] = {:?} > self.d_plus[{}] = {:?}", l, self.d_plus[u], v, self.d_plus[v]));
+            p1.push(u);
+            u = self.basis[self.mirror(u)];
+            debug(format!("u = {}", u));
+            p1.push(u);
+            u = self.basis[self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \n p1 = {:?}", u, p1).as_str())];
+            debug(format!("u = {}", u));
+        }
+        debug(format!("After the loop we have {} -> {}, {} -> {}, where d_plus[{}] = {:?}, d_plus[{}] = {:?}", l, u, k, v, u, self.d_plus[u], v, self.d_plus[v]));
+        while u != v {
+            if u != self.s {
+                p1.push(u);
+                u = self.basis[self.mirror(u)];
+                debug(format!("first u = {}, with d_minus[{}] = {:?}", u, u, self.d_minus[u]));
+                p1.push(u);
+                u = self.basis[self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np1 = {:?}\np2 = {:?}", u, p1, p2).as_str())];
+                debug(format!("second u = {}, with d_plus[{}] = {:?}", u, u, self.d_plus[u]));
+            }
+            else {
+                debug("u has reached s, halting for now".to_string());
+            }
+            if v != self.s {
+                p2.push(v);
+                v = self.basis[self.mirror(v)];
+                debug(format!("first v = {}, with d_minus[{}] = {:?}", v, v, self.d_minus[v]));
+                p2.push(v);
+                v = self.basis[self.pred[v].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np1 = {:?}\np2 = {:?}", v, p1, p2).as_str())];
+                debug(format!("second v = {}, with d_plus[{}] = {:?}", v, v, self.d_plus[v]));
+            }
+            else {
+                debug("v has reached s, halting for now".to_string());
+            }
+        }
+        debug(format!("b = {}\np1 = {:?}, \np2 = {:?}", u, p1, p2));
+        return (u, p1, p2);
+    }
+
     fn set_cycle_path_values(&mut self, path: &Vec<usize>, two_delta: Cost) {
         for i in 0..path.len() {
             let u = path[i];
-            if i < path.len()-1 {
-                let v = path[i + 1];
-                if self.d_minus[v].is_infinite() {
-                    debug(format!("    {} has no prev, so d_minus[{}] = {:?}, pred[{}] = {} now", v, v, self.d_plus[u] + Finite(1), v, u));
-                    self.d_minus[v] = self.d_plus[u] + Finite(1);
-                    self.pred[v] = Some(u);
-                }
-            }
             if ! self.is_outer(u) {
                 self.d_plus[u] = two_delta - self.d_minus[u];
                 debug(format!("    {} is not outer, so self.d_plus[{}] = {} now", u, u, self.d_plus[u].unwrap()));
                 self.scan(u);
             }
+            if i < path.len()-1 {
+                let v = path[i + 1];
+                // TODO erstatt med w for vektet
+                if self.d_plus[u] + Finite(1) < self.d_minus[v] {
+                    debug(format!("    {} has no prev, so d_minus[{}] = {:?}, pred[{}] = {} now", v, v, self.d_plus[u] + Finite(1), v, u));
+                    self.d_minus[v] = self.d_plus[u] + Finite(1);
+                    self.pred[v] = Some(u);
+                }
+            }
         }
-    }
-
-    // TODO hele er ekstremt ineffektiv, fiks senere
-    fn find_cycle_base(&self, l: usize, k: usize) -> (usize, Vec<usize>, Vec<usize>){
-        debug(format!("    Finding cycle starting at l = {}, k = {}:", l, k));
-
-        let p1 = self.find_path(l);
-        let p2 = self.find_path(k);
-        let b = *p1.iter().find(|&u| p2.contains(u)).expect("Expected these two paths to have the same base, but they don't??");
-
-        debug(format!("        path1: {:?}", p1));
-        debug(format!("        path2: {:?}", p2));
-        debug(format!("        b: {}", b));
-
-        (
-            b,
-            Vec::from(&p1[..p1.iter().position(|&u| u == b).unwrap()]),
-            Vec::from(&p2[..p2.iter().position(|&u| u == b).unwrap()]),
-        )
-    }
-
-
-    // TODO dette er veldig sketchy. Skal man bare behandle alle i samme basis likt?
-    fn find_path(&self, mut u: usize) -> Vec<usize> {
-        u = self.basis[u];
-        let mut ret = vec![u];
-        loop {
-            if u == self.s { break; }
-            u = self.basis[self.mirror(u)];
-            ret.push(u);
-
-            if u == self.s { break; }
-            u = self.basis[self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: {:?}", u, ret).as_str())];
-            ret.push(u);
-        }
-        ret
     }
 
     fn mirror(&self, u: usize) -> usize {

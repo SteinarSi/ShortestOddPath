@@ -24,6 +24,8 @@ mod small_paths {
     fn small5() { test("small5"); }
     #[test]
     fn small6() { test("small6"); }
+    #[test]
+    fn small7() { test("small7"); }
 }
 
 mod medium_paths {
@@ -54,4 +56,11 @@ mod large_paths {
     fn large1() { test("large1"); }
     #[test]
     fn large2() { test("large2"); }
+}
+
+mod special_paths {
+    fn test(name: &str) { crate::test_path("special_graphs", name); }
+
+    #[test]
+    fn gamma4() { test("gamma4"); }
 }

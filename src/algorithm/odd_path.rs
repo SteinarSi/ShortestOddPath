@@ -3,7 +3,7 @@ use crate::structure::cost::{Cost::*, Cost};
 use crate::structure::graph::Graph;
 use crate::structure::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, BTreeMap};
 use std::cmp::Reverse;
 
 pub struct DerigsAlgorithm {
@@ -12,6 +12,7 @@ pub struct DerigsAlgorithm {
     d_minus: Vec<Cost>,
     pred: Vec<Option<usize>>,
     basis: Vec<usize>,
+    bases: BTreeMap<usize, Vec<usize>>,
     s: usize,
     t: usize,
     orig_n: usize,
@@ -60,6 +61,7 @@ impl DerigsAlgorithm {
             d_minus,
             pred,
             basis: (0..n).collect(),
+            bases: BTreeMap::new(),
             s,
             t,
             orig_n: graph.n(),
@@ -193,12 +195,8 @@ impl DerigsAlgorithm {
 
         let (b, p1, p2) = self.backtrack_cycle(l, k);
 
-        // TODO Veldig inneffektivt, men fungerer som en MVP
-        for u in self.graph.vertices() {
-            if p1.contains(&self.basis[u]) || p2.contains(&self.basis[u]) {
-                self.basis[u] = b;
-            }
-        }
+        self.set_bases(b, &p1);
+        self.set_bases(b, &p2);
 
         // TODO erstatt 1 med vekten mellom l og k for vektet
         let two_delta = self.d_plus[l] + self.d_plus[k] + Finite(1);
@@ -251,6 +249,23 @@ impl DerigsAlgorithm {
         }
         debug(format!("b = {}\np1 = {:?}, \np2 = {:?}", u, p1, p2));
         return (u, p1, p2);
+    }
+
+    fn set_bases(&mut self, b: usize, path: &Vec<usize>) {
+        let mut ex = Vec::new();
+        for &u in path {
+            if self.basis[u] != b {
+                self.basis[u] = b;
+                ex.push(u);
+                if let Some(xs) = self.bases.get(&u) {
+                    for &v in xs {
+                        self.basis[v] = b;
+                        ex.push(v);
+                    }
+                }
+            }
+        }
+        self.bases.entry(b).or_default().extend(ex);
     }
 
     fn set_cycle_path_values(&mut self, path: &Vec<usize>, two_delta: Cost) {

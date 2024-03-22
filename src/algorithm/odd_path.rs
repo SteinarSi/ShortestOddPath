@@ -5,11 +5,12 @@ use crate::structure::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::{BinaryHeap, BTreeMap};
 use std::cmp::Reverse;
+use crate::structure::weight::Weight;
 
-pub struct DerigsAlgorithm {
-    graph: UndirectedGraph,
-    d_plus: Vec<Cost>,
-    d_minus: Vec<Cost>,
+pub struct DerigsAlgorithm<W: Weight> {
+    graph: UndirectedGraph<W>,
+    d_plus: Vec<Cost<W>>,
+    d_minus: Vec<Cost<W>>,
     pred: Vec<Option<usize>>,
     basis: Vec<usize>,
     bases: BTreeMap<usize, Vec<usize>>,
@@ -17,8 +18,8 @@ pub struct DerigsAlgorithm {
     t: usize,
     orig_n: usize,
     completed: Vec<bool>,
-    pqe: BinaryHeap<(Reverse<u64>, (usize,usize))>,
-    pqv: BinaryHeap<(Reverse<u64>, usize)>,
+    pqe: BinaryHeap<(Reverse<W>, (usize,usize))>,
+    pqv: BinaryHeap<(Reverse<W>, usize)>,
 }
 
 /**
@@ -27,29 +28,30 @@ In: an undirected graph G, two vertices s,t in V(G)
 Out: the shortest s-t-path in G that uses an odd number of edges, if one exists.
 */
 
-pub fn shortest_odd_path(graph: &UndirectedGraph, s: usize, t: usize) -> PathResult {
+pub fn shortest_odd_path<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usize) -> PathResult<W> {
     DerigsAlgorithm::init(graph, s, t).solve()
 }
 
-impl DerigsAlgorithm {
-    fn init(graph: &UndirectedGraph, s: usize, t: usize) -> Self where Self: Sized {
+impl <W: Weight> DerigsAlgorithm<W> {
+    fn init(graph: &UndirectedGraph<W>, s: usize, t: usize) -> Self where Self: Sized {
         let mirror_graph = create_mirror_graph(graph, s, t);
         let n = mirror_graph.n();
 
         debug(format!("Looking for an odd {}-{}-path here:\n{:?}\n", s, t, mirror_graph));
 
-        let mut d_plus = repeat(n, Infinite);
+        let mut d_plus= repeat(n, Infinite);
         let mut d_minus = repeat(n, Infinite);
         let mut pred = repeat(n, None);
         let mut completed = repeat(n, false);
         let pqe = BinaryHeap::new();
         let mut pqv = BinaryHeap::new();
 
-        d_plus[s] = Finite(0);
-        for &v in mirror_graph.neighbourhood(&s) {
+        d_plus[s] = Finite(0.into());
+        // TODO use w for something
+        for &(w, v) in mirror_graph.neighbourhood(&s) {
             // Bytt med w for vektet
-            pqv.push((Reverse(1), v));
-            d_minus[v] = Finite(1);
+            pqv.push((Reverse(w), v));
+            d_minus[v] = Finite(w);
             pred[v] = Some(s);
         }
         completed[s] = true;
@@ -71,7 +73,7 @@ impl DerigsAlgorithm {
         }
     }
 
-    fn solve(&mut self) -> PathResult {
+    fn solve(&mut self) -> PathResult<W> {
         if self.s == self.t {
             return Impossible;
         }
@@ -87,13 +89,15 @@ impl DerigsAlgorithm {
 
         debug(format!("\n\nAn {}-{}-path exists. Backtracking...", self.s, self.t));
 
-        let mut cost = 0;
+        let mut cost: W = 0.into();
         let mut current = self.t;
         let mut path = vec![self.t];
 
         while current != self.mirror(self.s) {
             debug(format!("    current: {}", current));
-            cost += 1;
+
+            // TODO finne den faktiske kostnaden
+            cost = cost + 1.into();
             current = self.pred[current].expect(format!("    Tried to backtrack and find the path, but self.pred[{}] was undefined!", current).as_str());
             debug(format!("    current: {}", current));
             path.push(current);
@@ -159,30 +163,32 @@ impl DerigsAlgorithm {
         self.completed[u] = true;
         debug(format!("    Scan(k = {}", u));
         let dist_u = self.d_plus[u].expect(format!("        We called self.scan({}), but self.d_plus[{}] is undefined!", u, u).as_str());
-        for &v in self.graph.neighbourhood(&u) {
+        // TODO use w
+        for &(w, v) in self.graph.neighbourhood(&u) {
+            let new_dist_v = dist_u + w;
             if ! self.completed[v] {
-                if Finite(dist_u + 1) >= self.d_minus[v] { continue }
+                if Finite(new_dist_v) >= self.d_minus[v] { continue }
 
-                debug(format!("        d_minus[{}] = {}", v, dist_u+1));
+                debug(format!("        d_minus[{}] = {}", v, new_dist_v));
                 debug(format!("        pred[{}] = {}", v, u));
-                self.d_minus[v] = Finite(dist_u + 1);
+                self.d_minus[v] = Finite(new_dist_v);
                 self.pred[v] = Some(u);
-                self.pqv.push((Reverse(dist_u + 1), v));
+                self.pqv.push((Reverse(new_dist_v), v));
             }
 
             else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v]){
-                debug(format!("        Found candidate for blossom: ({}, {}), with delta = {}", u, v, (dist_u + dist_v + 1) / 2));
+                debug(format!("        Found candidate for blossom: ({}, {}), with delta = {}", u, v, (dist_u + dist_v + w) / 2.into()));
                 // TODO bytte med w for vektet
-                self.pqe.push((Reverse((dist_u + dist_v + 1) / 2), (u, v)));
-                if Finite(dist_u) < self.d_minus[v] {
-                    self.d_minus[v] = Finite(dist_u + 1);
+                self.pqe.push((Reverse((dist_u + dist_v + w) / 2.into()), (u, v)));
+                if Finite(new_dist_v) < self.d_minus[v] {
+                    self.d_minus[v] = Finite(new_dist_v);
                     self.pred[v] = Some(u);
                 }
             }
         }
     }
 
-    fn grow(&mut self, l: usize, delta: u64) {
+    fn grow(&mut self, l: usize, delta: W) {
         debug(format!("Grow(l = {}, delta = {})", l, delta));
         let k = self.mirror(l);
         debug(format!("    n = {}, mirror({}) = {}", self.graph.n(), l, k));
@@ -190,7 +196,7 @@ impl DerigsAlgorithm {
         self.scan(k);
     }
 
-    fn blossom(&mut self, l: usize, k: usize, delta: u64) {
+    fn blossom(&mut self, l: usize, k: usize, delta: W) {
         debug(format!("Blossom(l = {}, k = {}, delta = {}):", l, k, delta));
 
         let (b, p1, p2) = self.backtrack_cycle(l, k);
@@ -199,7 +205,9 @@ impl DerigsAlgorithm {
         self.set_bases(b, &p2);
 
         // TODO erstatt 1 med vekten mellom l og k for vektet
-        let two_delta = self.d_plus[l] + self.d_plus[k] + Finite(1);
+        // TODO veldig stygt, men funker for nå. Bør antageligvis lagre verdien på kanten eller deltaen i PQQ eller noe. Men uten å dele på 2.
+        let (w, _) = self.graph[l].iter().find(|(_,vv)| &k == vv).unwrap();
+        let two_delta = self.d_plus[l] + self.d_plus[k] + Finite(*w);
         self.set_cycle_path_values(&p1, two_delta);
         self.set_cycle_path_values(&p2, two_delta);
     }
@@ -268,7 +276,7 @@ impl DerigsAlgorithm {
         self.bases.entry(b).or_default().extend(ex);
     }
 
-    fn set_cycle_path_values(&mut self, path: &Vec<usize>, two_delta: Cost) {
+    fn set_cycle_path_values(&mut self, path: &Vec<usize>, two_delta: Cost<W>) {
         for i in 0..path.len() {
             let u = path[i];
             if ! self.is_outer(u) {
@@ -279,9 +287,12 @@ impl DerigsAlgorithm {
             if i < path.len()-1 {
                 let v = path[i + 1];
                 // TODO erstatt med w for vektet
-                if self.d_plus[u] + Finite(1) < self.d_minus[v] {
-                    debug(format!("    {} has no prev, so d_minus[{}] = {:?}, pred[{}] = {} now", v, v, self.d_plus[u] + Finite(1), v, u));
-                    self.d_minus[v] = self.d_plus[u] + Finite(1);
+                // TODO oooooooooooooooooooooooooooooooooooooooooooooooo
+                if self.d_plus[u] + Finite(1.into()) < self.d_minus[v] {
+                    // TODO aaaaaaaaaaaaaaaaaaaaaa
+                    debug(format!("    {} has no prev, so d_minus[{}] = {:?}, pred[{}] = {} now", v, v, self.d_plus[u] + Finite(1.into()), v, u));
+                    // TODO eeeeeeeeeeeeeeeeeeeeeeeeeee
+                    self.d_minus[v] = self.d_plus[u] + Finite(1.into());
                     self.pred[v] = Some(u);
                 }
             }
@@ -301,9 +312,9 @@ impl DerigsAlgorithm {
     }
 
     fn print_state(&self) {
-        let mut pqv: Vec<(Reverse<u64>,usize)> = self.pqv.clone().into_iter().collect();
+        let mut pqv: Vec<(Reverse<W>,usize)> = self.pqv.clone().into_vec();
         pqv.sort();
-        let mut pqe: Vec<(Reverse<u64>, (usize,usize))> = self.pqe.clone().into_iter().collect();
+        let mut pqe: Vec<(Reverse<W>, (usize,usize))> = self.pqe.clone().into_vec();
         pqe.sort();
         debug("State:".to_string());
         debug(format!("    d_plus:  {:?}", self.d_plus));
@@ -315,7 +326,7 @@ impl DerigsAlgorithm {
     }
 }
 
-fn create_mirror_graph(graph: &UndirectedGraph, s: usize, t: usize) -> UndirectedGraph {
+fn create_mirror_graph<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usize) -> UndirectedGraph<W> {
     let orig_n = graph.n();
     let new_n = orig_n * 2;
     let mut mirror = UndirectedGraph::new(new_n);
@@ -323,8 +334,8 @@ fn create_mirror_graph(graph: &UndirectedGraph, s: usize, t: usize) -> Undirecte
         mirror[u] = graph[u].clone();
         if u != s && u != t {
             mirror[u + orig_n] = graph[u].iter()
-                .filter(|&&v| v != s && v != t)
-                .map(|v| v + orig_n)
+                .filter(|&&(_, v)| v != s && v != t)
+                .map(|&(w, v)| (w, v + orig_n))
                 .collect()
         }
     }

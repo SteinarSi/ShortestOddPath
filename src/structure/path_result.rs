@@ -1,6 +1,8 @@
-pub enum PathResult {
+use crate::structure::weight::Weight;
+
+pub enum PathResult<W: Weight> {
     Possible {
-        cost: u64,
+        cost: W,
         path: Vec<usize>,
     },
     Impossible

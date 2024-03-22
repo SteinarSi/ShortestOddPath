@@ -5,6 +5,7 @@ use crate::structure::{
     path_result::{PathResult, PathResult::*},
 };
 use std::collections::VecDeque;
+use crate::structure::weight::Weight;
 use crate::utility::misc::repeat;
 
 /**
@@ -13,33 +14,43 @@ In: an undirected graph G, and two vertices s,t in V(G)
 Out: the shortest s-t-walk in G, that uses an odd number of edges
 */
 
-pub fn shortest_odd_walk(graph: &UndirectedGraph, s: usize, t: usize) -> PathResult {
+pub fn shortest_odd_walk<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usize) -> PathResult<W> {
     let n = graph.n();
-    let mut even_dist: Vec<Cost> = repeat(n, Infinite);
-    even_dist[s] = Finite(0);
+    let mut even_dist: Vec<Cost<W>> = repeat(n, Infinite);
     let mut odd_dist = repeat(n, Infinite);
-    let mut queue: VecDeque<(usize, u64)> = VecDeque::from([(s, 0)]);
+    even_dist[s] = Finite(0.into());
+    let mut queue: VecDeque<(usize, bool)> = VecDeque::from([(s, true)]);
     let mut even_prev = repeat(n, None);
     let mut odd_prev = repeat(n, None);
 
-    while ! queue.is_empty() {
-        let (u, distu) = queue.pop_front().unwrap();
 
-        for &v in graph.neighbourhood(&u) {
-            let distv = distu + 1;
-            if distv % 2 == 0 && Finite(distv) < even_dist[v] {
-                even_dist[v] = Finite(distv);
-                queue.push_back((v, distv));
-                even_prev[v] = Some(u);
+    while ! queue.is_empty() {
+        let (u, even) = queue.pop_front().unwrap();
+        if even {
+            let distu = even_dist[u];
+            for &(w, v) in graph.neighbourhood(&u) {
+                let distv = distu + Finite(w);
+                if distv < odd_dist[v] {
+                    odd_dist[v] = distv;
+                    queue.push_back((v, false));
+                    odd_prev[v] = Some(u);
+                }
             }
-            if distv % 2 == 1 && Finite(distv) < odd_dist[v] {
-                odd_dist[v] = Finite(distv);
-                queue.push_back((v, distv));
-                odd_prev[v] = Some(u);
+        }
+        else {
+            let distu = odd_dist[u];
+            for &(w, v) in graph.neighbourhood(&u) {
+                let distv = distu + Finite(w);
+                if distv < even_dist[v] {
+                    even_dist[v] = distv;
+                    queue.push_back((v, true));
+                    even_prev[v] = Some(u);
+                }
             }
         }
         if odd_dist[t].is_finite() { break; }
     }
+
 
     match odd_dist[t] {
         Infinite => Impossible,

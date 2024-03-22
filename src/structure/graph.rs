@@ -1,8 +1,8 @@
 use std::str::Split;
 
-pub trait Graph<V, E>: From<String>
+pub trait Graph<V, E>
     where V: PartialEq + Clone,
-          E: PartialEq + Clone
+          E: PartialEq + Clone,
 {
     fn n(&self) -> usize;
     fn m(&self) -> usize;

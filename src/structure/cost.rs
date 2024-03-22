@@ -2,15 +2,16 @@ use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Sub};
 use std::str::FromStr;
+pub use Cost::*;
+use crate::structure::weight::Weight;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Cost {
+pub enum Cost<W: Weight> {
     Infinite,
-    Finite(u64)
+    Finite(W),
 }
-pub use Cost::*;
 
-impl Cost {
+impl <W: Weight> Cost<W> {
     pub fn is_infinite(&self) -> bool {
         match self {
             Infinite => true,
@@ -22,18 +23,18 @@ impl Cost {
         ! self.is_infinite()
     }
 
-    pub fn unwrap(&self) -> u64 {
+    pub fn unwrap(&self) -> W {
         self.expect("Error: tried to unwrap an infinite value and treat it as strictly finite")
     }
 
-    pub fn expect(&self, msg: &str) -> u64 {
+    pub fn expect(&self, msg: &str) -> W {
         match self {
             Finite(x) => *x,
             Infinite => panic!("{}", msg),
         }
     }
 }
-impl Ord for Cost {
+impl <W: Weight> Ord for Cost<W> {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Infinite, Infinite) => Ordering::Equal,
@@ -43,14 +44,14 @@ impl Ord for Cost {
         }
     }
 }
-impl PartialOrd for Cost {
+impl <W: Weight> PartialOrd for Cost<W> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Add for Cost {
-    type Output = Cost;
+impl <W: Weight> Add for Cost<W> {
+    type Output = Cost<W>;
 
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
@@ -59,8 +60,8 @@ impl Add for Cost {
         }
     }
 }
-impl Sub for Cost {
-    type Output = Cost;
+impl <W: Weight> Sub for Cost<W> {
+    type Output = Cost<W>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
@@ -70,25 +71,25 @@ impl Sub for Cost {
     }
 }
 
-impl From<Option<u64>> for Cost {
+impl <W: Weight> From<Option<u64>> for Cost<W> {
     fn from(value: Option<u64>) -> Self {
         match value {
             None => Infinite,
-            Some(x) => Finite(x),
+            Some(x) => Finite(W::from(x)),
         }
     }
 }
 
-impl <E> From<Result<u64, E>> for Cost {
+impl <E, W: Weight> From<Result<u64, E>> for Cost<W> {
     fn from(value: Result<u64, E>) -> Self {
         match value {
             Err(_) => Infinite,
-            Ok(x) => Finite(x),
+            Ok(x) => Finite(W::from(x)),
         }
     }
 }
 
-impl FromStr for Cost {
+impl <W: Weight> FromStr for Cost<W> {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -96,7 +97,7 @@ impl FromStr for Cost {
     }
 }
 
-impl Debug for Cost {
+impl <W: Weight> Debug for Cost<W> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Finite(x) = self {
             write!(f, "{}", x)

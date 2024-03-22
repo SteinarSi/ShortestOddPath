@@ -1,15 +1,16 @@
 use std::fmt::{Debug, Formatter};
 use std::ops::{Index, IndexMut};
-use std::str::{FromStr};
+use std::str::FromStr;
 use crate::structure::graph::Graph;
+use crate::structure::weight::Weight;
 
 #[derive(PartialEq, Clone)]
-pub struct UndirectedGraph {
-    adj_list: Vec<Vec<usize>>,
+pub struct UndirectedGraph<W: Weight> {
+    adj_list: Vec<Vec<(W,usize)>>,
     n: usize,
     m: usize,
 }
-impl UndirectedGraph {
+impl <W: Weight> UndirectedGraph<W> {
     pub fn new(n: usize) -> Self {
         UndirectedGraph {
             adj_list: (0..n).map(|_| Vec::new()).collect(),
@@ -20,31 +21,31 @@ impl UndirectedGraph {
 
     pub fn remove_edge(&mut self, (u,v): &(usize,usize)) {
         let len = self.adj_list[*u].len();
-        self.adj_list[*u].retain(|w| w != v);
-        self.adj_list[*v].retain(|w| w != u);
+        self.adj_list[*u].retain(|(_,w)| w != v);
+        self.adj_list[*v].retain(|(_,w)| w != u);
         if len != self.adj_list[*u].len() {
             self.m = self.m - 1;
         }
     }
-    pub(crate) unsafe fn add_directed_edge(&mut self, u: usize, v: usize) {
-        self.adj_list[u].push(v);
+    pub(crate) unsafe fn add_directed_edge(&mut self, u: usize, e: (W, usize)) {
+        self.adj_list[u].push(e);
         self.m = self.m + 1;
     }
 }
 
-impl Graph<usize, usize> for UndirectedGraph {
+impl <W: Weight> Graph<usize, (W, usize)> for UndirectedGraph<W> {
     fn n(&self) -> usize { self.n }
     fn m(&self) -> usize { self.m }
     fn vertices(&self) -> Vec<usize> { (0..self.n).collect() }
-    fn neighbourhood(&self, u: &usize) -> &Vec<usize> { &self.adj_list[*u] }
-    fn add_edge(&mut self, u: usize, v: usize) {
-        self.adj_list[u].push(v);
-        self.adj_list[v].push(u);
+    fn neighbourhood(&self, u: &usize) -> &Vec<(W, usize)> { &self.adj_list[*u] }
+    fn add_edge(&mut self, u: usize, (w, v): (W, usize)) {
+        self.adj_list[u].push((w, v));
+        self.adj_list[v].push((w, u));
         self.m = self.m + 1
     }
 }
 
-impl From<String> for UndirectedGraph {
+impl <W: Weight> From<String> for UndirectedGraph<W> {
     fn from(value: String) -> Self {
         Self::from_str(value.as_str())
             .expect(format!(
@@ -54,7 +55,7 @@ impl From<String> for UndirectedGraph {
     }
 }
 
-impl FromStr for UndirectedGraph {
+impl <W: Weight> FromStr for UndirectedGraph<W> {
     type Err = String;
 
     fn from_str(str: &str) -> Result<Self, Self::Err> {
@@ -68,27 +69,29 @@ impl FromStr for UndirectedGraph {
             let mut rs = row.split(' ');
             let u = ret.parse_vertex(&mut rs)?;
             let v = ret.parse_vertex(&mut rs)?;
-            ret.add_edge(u, v);
+            let www = rs.next().unwrap_or_else(|| "1");
+            let w = W::from_str(www).unwrap_or_else(|_|1.into());
+            ret.add_edge(u, (w, v));
         }
         Ok(ret)
     }
 }
 
-impl Index<usize> for UndirectedGraph {
-    type Output = Vec<usize>;
+impl <W: Weight> Index<usize> for UndirectedGraph<W> {
+    type Output = Vec<(W, usize)>;
 
     fn index(&self, u: usize) -> &Self::Output {
         &self.adj_list[u]
     }
 }
 
-impl IndexMut<usize> for UndirectedGraph {
+impl <W: Weight> IndexMut<usize> for UndirectedGraph<W> {
     fn index_mut(&mut self, u: usize) -> &mut Self::Output {
         &mut self.adj_list[u]
     }
 }
 
-impl Debug for UndirectedGraph {
+impl <W: Weight> Debug for UndirectedGraph<W> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut ret = String::new();
         ret.push_str(format!("UndirectedGraph(n = {}, m = {}):\n", self.n, self.m).as_str());

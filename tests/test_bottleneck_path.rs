@@ -4,7 +4,7 @@ use crate::utility::meta_test;
 mod utility;
 
 fn test(folder: &str, name: &str) {
-    meta_test::<ShortestBottleneckPath>(folder, name);
+    meta_test::<ShortestBottleneckPath, u64>(folder, name);
 }
 
 #[test]

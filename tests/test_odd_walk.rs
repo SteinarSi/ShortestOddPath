@@ -4,7 +4,7 @@ use crate::utility::problem::ShortestOddWalk;
 use crate::utility::meta_test;
 
 fn test_walk(folder: &str, file: &str) {
-    meta_test::<ShortestOddWalk>(folder, file)
+    meta_test::<ShortestOddWalk, u64>(folder, file)
 }
 
 mod small_walks {

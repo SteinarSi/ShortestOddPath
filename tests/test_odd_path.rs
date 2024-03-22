@@ -5,7 +5,7 @@ mod utility;
 
 fn test_path(folder: &str, name: &str) {
     debug(format!("{}/{}", folder, name));
-    meta_test::<ShortestOddPath>(folder, name)
+    meta_test::<ShortestOddPath, u64>(folder, name)
 }
 mod small_paths {
     use crate::test_path;

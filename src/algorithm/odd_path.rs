@@ -4,7 +4,7 @@ use crate::structure::graph::Graph;
 use crate::structure::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::{BinaryHeap, BTreeMap};
-use std::cmp::Reverse;
+use crate::structure::todo::{Todo, Todo::*};
 use crate::structure::weight::Weight;
 
 pub struct DerigsAlgorithm<W: Weight> {
@@ -18,8 +18,7 @@ pub struct DerigsAlgorithm<W: Weight> {
     t: usize,
     orig_n: usize,
     completed: Vec<bool>,
-    pqe: BinaryHeap<(Reverse<W>, (usize,usize))>,
-    pqv: BinaryHeap<(Reverse<W>, usize)>,
+    pq: BinaryHeap<Todo<W>>,
 }
 
 /**
@@ -43,14 +42,11 @@ impl <W: Weight> DerigsAlgorithm<W> {
         let mut d_minus = repeat(n, Infinite);
         let mut pred = repeat(n, None);
         let mut completed = repeat(n, false);
-        let pqe = BinaryHeap::new();
-        let mut pqv = BinaryHeap::new();
-
+        let mut pq = BinaryHeap::new();
         d_plus[s] = Finite(0.into());
         // TODO use w for something
         for &(w, v) in mirror_graph.neighbourhood(&s) {
-            // Bytt med w for vektet
-            pqv.push((Reverse(w), v));
+            pq.push(Vertex(w, v));
             d_minus[v] = Finite(w);
             pred[v] = Some(s);
         }
@@ -68,8 +64,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
             t,
             orig_n: graph.n(),
             completed,
-            pqe,
-            pqv,
+            pq,
         }
     }
 
@@ -116,44 +111,23 @@ impl <W: Weight> DerigsAlgorithm<W> {
     // Return true if the search is done. Either because we found the shortest odd s-t-path, or because none exist.
     fn control(&mut self) -> bool {
         self.print_state();
-        while let Some((_, u)) = self.pqv.peek() {
-            if self.completed[*u] {
-                self.pqv.pop();
+
+        while let Some(todo) = self.pq.peek() {
+            match todo {
+                Vertex(_,u) => if self.completed[*u] { self.pq.pop(); } else { break; }
+                Blossom(_,u,v) => if self.basis[*u] == self.basis[*v] { self.pq.pop(); } else { break; }
             }
-            else { break; }
         }
-        while let Some((_, (u, v))) = self.pqe.peek() {
-            if self.basis[*u] == self.basis[*v] {
-                self.pqe.pop();
-            }
-            else { break; }
-        }
-        let delta_1 = self.pqv.peek().map(|(Reverse(d),_)| *d);
-        let delta_2 = self.pqe.peek().map(|(Reverse(d),_)| *d);
 
-        debug(format!("Control: \n    d1 := {:?}\n    d2 := {:?}", delta_1, delta_2));
-
-        let min_delta = vec![delta_1, delta_2]
-            .into_iter()
-            .flatten()
-            .min();
-
-        if let Some(delta) = min_delta {
-            // If delta == delta_1
-            if self.pqv.peek().is_some() && Reverse(delta) == self.pqv.peek().unwrap().0 {
-                let l = self.pqv.pop().unwrap().1;
+        match self.pq.pop() {
+            None => return true, // No odd path exists :(
+            Some(Vertex(delta, l)) => {
                 if l == self.t { return true; } // Shortest odd path has been found :)
                 self.grow(l, delta);
             }
-            // If delta == delta_2
-            else {
-                let (l, k) = self.pqe.pop().unwrap().1;
+            Some(Blossom(delta, l, k)) => {
                 self.blossom(l, k, delta);
             }
-        }
-        else {
-            // No odd path exists :(
-            return true;
         }
 
         return false;
@@ -173,13 +147,13 @@ impl <W: Weight> DerigsAlgorithm<W> {
                 debug(format!("        pred[{}] = {}", v, u));
                 self.d_minus[v] = Finite(new_dist_v);
                 self.pred[v] = Some(u);
-                self.pqv.push((Reverse(new_dist_v), v));
+                self.pq.push(Vertex(new_dist_v, v));
             }
 
             else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v]){
                 debug(format!("        Found candidate for blossom: ({}, {}), with delta = {}", u, v, (dist_u + dist_v + w) / 2.into()));
                 // TODO bytte med w for vektet
-                self.pqe.push((Reverse((dist_u + dist_v + w) / 2.into()), (u, v)));
+                self.pq.push(Blossom(dist_u + dist_v + w, u, v));
                 if Finite(new_dist_v) < self.d_minus[v] {
                     self.d_minus[v] = Finite(new_dist_v);
                     self.pred[v] = Some(u);
@@ -312,16 +286,13 @@ impl <W: Weight> DerigsAlgorithm<W> {
     }
 
     fn print_state(&self) {
-        let mut pqv: Vec<(Reverse<W>,usize)> = self.pqv.clone().into_vec();
-        pqv.sort();
-        let mut pqe: Vec<(Reverse<W>, (usize,usize))> = self.pqe.clone().into_vec();
-        pqe.sort();
+        let mut pq = self.pq.clone().into_vec();
+        pq.sort();
         debug("State:".to_string());
         debug(format!("    d_plus:  {:?}", self.d_plus));
         debug(format!("    d_minus: {:?}", self.d_minus));
         debug(format!("    pred: {:?}", self.pred));
-        debug(format!("    PQV: {:?}", pqv));
-        debug(format!("    PQE: {:?}", pqe));
+        debug(format!("    PQ: {:?}", pq));
         debug(format!("    Completed: {:?}", self.graph.vertices().into_iter().filter(|&u| self.completed[u]).collect::<Vec<usize>>()));
     }
 }

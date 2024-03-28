@@ -186,8 +186,8 @@ impl <W: Weight> DerigsAlgorithm<W> {
     }
 
     fn backtrack(&mut self, l: usize, k: usize) -> (usize, Vec<(usize, (usize, W))>, Vec<(usize, (usize, W))>) {
-        let mut p1 = vec![(l, self.pred[l].unwrap())];
-        let mut p2 = vec![(k, self.pred[k].unwrap())];
+        let mut p1 = vec![(self.basis[l], self.pred[l].unwrap())];
+        let mut p2 = vec![(self.basis[k], self.pred[k].unwrap())];
 
         let mut u = self.basis[l];
         let mut v = self.basis[k];
@@ -210,7 +210,14 @@ impl <W: Weight> DerigsAlgorithm<W> {
                 if self.in_current_cycle[uu] {
                     debug(format!("        Found b = {}", uu));
                     self.in_current_cycle[uu] = false;
-                    p2.pop();
+                    while let Some((vv,_)) = p2.last() {
+                        self.in_current_cycle[*vv] = false;
+                        if vv == &uu {
+                            p2.pop();
+                            break;
+                        }
+                        p2.pop();
+                    }
                     return (uu, p1, p2);
                 }
                 p1.push((uu, (u, w)));
@@ -226,7 +233,14 @@ impl <W: Weight> DerigsAlgorithm<W> {
                 if self.in_current_cycle[vv] {
                     debug(format!("        Found b = {}", vv));
                     self.in_current_cycle[vv] = false;
-                    p1.pop();
+                    while let Some((uu,_)) = p1.last() {
+                        self.in_current_cycle[*uu] = false;
+                        if uu == &vv {
+                            p1.pop();
+                            break;
+                        }
+                        p1.pop();
+                    }
                     return (vv, p1, p2);
                 }
                 p2.push((vv, (v, w)));
@@ -291,6 +305,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
         debug(format!("    pred: {:?}", self.pred));
         debug(format!("    PQ: {:?}", pq));
         debug(format!("    Completed: {:?}", self.graph.vertices().into_iter().filter(|&u| self.completed[u]).collect::<Vec<usize>>()));
+        debug(format!("    Current cycle: {:?}", self.in_current_cycle));
     }
 }
 

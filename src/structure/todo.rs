@@ -15,16 +15,13 @@ impl <W: Weight> PartialOrd for Todo<W> {
     }
 }
 
-/**
-    Note that this is a reverse ordering, so that smaller weights are prioritized first in the max heap.
-*/
 impl <W: Weight> Ord for Todo<W> {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
-            (Vertex(w1, _),Vertex(w2, _)) => w2.cmp(w1),
-            (Vertex(w1,_),Blossom(w2,_,_)) => if *w1 + *w1 >= *w2 {Less} else {Greater},
-            (Blossom(w1,_,_),Vertex(w2,_)) => if *w1 > *w1 + *w2 {Less} else {Greater},
-            (Blossom(w1,_,_),Blossom(w2,_,_)) => w2.cmp(w1),
+            (Vertex(w1, _),Vertex(w2, _)) => w1.cmp(w2),
+            (Vertex(w1,_),Blossom(w2,_,_)) => if *w1 + *w1 <= *w2 { Less } else { Greater },
+            (Blossom(w1,_,_),Vertex(w2,_)) => if *w1 < *w2 + *w2 { Less } else { Greater },
+            (Blossom(w1,_,_),Blossom(w2,_,_)) => w1.cmp(w2),
         }
     }
 }

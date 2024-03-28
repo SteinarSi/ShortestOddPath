@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use crate::structure::path_result::{PathResult, PathResult::*};
 use crate::structure::cost::{Cost::*, Cost};
 use crate::structure::graph::Graph;
@@ -11,14 +12,15 @@ pub struct DerigsAlgorithm<W: Weight> {
     graph: UndirectedGraph<W>,
     d_plus: Vec<Cost<W>>,
     d_minus: Vec<Cost<W>>,
-    pred: Vec<Option<usize>>,
+    pred: Vec<Option<(usize,W)>>,
     basis: Vec<usize>,
     bases: BTreeMap<usize, Vec<usize>>,
     s: usize,
     t: usize,
     orig_n: usize,
     completed: Vec<bool>,
-    pq: BinaryHeap<Todo<W>>,
+    pq: BinaryHeap<Reverse<Todo<W>>>,
+    in_current_cycle: Vec<bool>,
 }
 
 /**
@@ -44,11 +46,11 @@ impl <W: Weight> DerigsAlgorithm<W> {
         let mut completed = repeat(n, false);
         let mut pq = BinaryHeap::new();
         d_plus[s] = Finite(0.into());
-        // TODO use w for something
+
         for &(w, v) in mirror_graph.neighbourhood(&s) {
-            pq.push(Vertex(w, v));
+            pq.push(Reverse(Vertex(w, v)));
             d_minus[v] = Finite(w);
-            pred[v] = Some(s);
+            pred[v] = Some((s,w));
         }
         completed[s] = true;
         completed[s + graph.n()] = true;
@@ -65,6 +67,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
             orig_n: graph.n(),
             completed,
             pq,
+            in_current_cycle: repeat(n, false),
         }
     }
 
@@ -91,9 +94,9 @@ impl <W: Weight> DerigsAlgorithm<W> {
         while current != self.mirror(self.s) {
             debug(format!("    current: {}", current));
 
-            // TODO finne den faktiske kostnaden
-            cost = cost + 1.into();
-            current = self.pred[current].expect(format!("    Tried to backtrack and find the path, but self.pred[{}] was undefined!", current).as_str());
+            let (v, w) = self.pred[current].expect(format!("    Tried to backtrack and find the path, but self.pred[{}] was undefined!", current).as_str());
+            current = v;
+            cost = cost + w;
             debug(format!("    current: {}", current));
             path.push(current);
             current = self.mirror(current);
@@ -112,7 +115,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
     fn control(&mut self) -> bool {
         self.print_state();
 
-        while let Some(todo) = self.pq.peek() {
+        while let Some(Reverse(todo)) = self.pq.peek() {
             match todo {
                 Vertex(_,u) => if self.completed[*u] { self.pq.pop(); } else { break; }
                 Blossom(_,u,v) => if self.basis[*u] == self.basis[*v] { self.pq.pop(); } else { break; }
@@ -121,11 +124,11 @@ impl <W: Weight> DerigsAlgorithm<W> {
 
         match self.pq.pop() {
             None => return true, // No odd path exists :(
-            Some(Vertex(delta, l)) => {
+            Some(Reverse(Vertex(delta, l))) => {
                 if l == self.t { return true; } // Shortest odd path has been found :)
                 self.grow(l, delta);
             }
-            Some(Blossom(delta, l, k)) => {
+            Some(Reverse(Blossom(delta, l, k))) => {
                 self.blossom(l, k, delta);
             }
         }
@@ -135,9 +138,8 @@ impl <W: Weight> DerigsAlgorithm<W> {
 
     fn scan(&mut self, u: usize) {
         self.completed[u] = true;
-        debug(format!("    Scan(k = {}", u));
+        debug(format!("    Scan(k = {})", u));
         let dist_u = self.d_plus[u].expect(format!("        We called self.scan({}), but self.d_plus[{}] is undefined!", u, u).as_str());
-        // TODO use w
         for &(w, v) in self.graph.neighbourhood(&u) {
             let new_dist_v = dist_u + w;
             if ! self.completed[v] {
@@ -146,17 +148,18 @@ impl <W: Weight> DerigsAlgorithm<W> {
                 debug(format!("        d_minus[{}] = {}", v, new_dist_v));
                 debug(format!("        pred[{}] = {}", v, u));
                 self.d_minus[v] = Finite(new_dist_v);
-                self.pred[v] = Some(u);
-                self.pq.push(Vertex(new_dist_v, v));
+                self.pred[v] = Some((u,w));
+                self.pq.push(Reverse(Vertex(new_dist_v, v)));
             }
 
             else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v]){
-                debug(format!("        Found candidate for blossom: ({}, {}), with delta = {}", u, v, (dist_u + dist_v + w) / 2.into()));
-                // TODO bytte med w for vektet
-                self.pq.push(Blossom(dist_u + dist_v + w, u, v));
+                debug(format!("        Found candidate for blossom: ({}, {}), with delta = {}", u, v, dist_u + dist_v + w));
+                self.pq.push(Reverse(Blossom(dist_u + dist_v + w, u, v)));
                 if Finite(new_dist_v) < self.d_minus[v] {
+                    debug(format!("        d_minus[{}] = {}", v, new_dist_v));
+                    debug(format!("        pred[{}] = {}", v, u));
                     self.d_minus[v] = Finite(new_dist_v);
-                    self.pred[v] = Some(u);
+                    self.pred[v] = Some((u,w));
                 }
             }
         }
@@ -165,7 +168,6 @@ impl <W: Weight> DerigsAlgorithm<W> {
     fn grow(&mut self, l: usize, delta: W) {
         debug(format!("Grow(l = {}, delta = {})", l, delta));
         let k = self.mirror(l);
-        debug(format!("    n = {}, mirror({}) = {}", self.graph.n(), l, k));
         self.d_plus[k] = Finite(delta);
         self.scan(k);
     }
@@ -173,69 +175,70 @@ impl <W: Weight> DerigsAlgorithm<W> {
     fn blossom(&mut self, l: usize, k: usize, delta: W) {
         debug(format!("Blossom(l = {}, k = {}, delta = {}):", l, k, delta));
 
-        let (b, p1, p2) = self.backtrack_cycle(l, k);
-
+        let (b, p1, p2) = self.backtrack(l, k);
+        debug(format!("    p1: {:?}", p1));
+        debug(format!("    p2: {:?}", p2));
         self.set_bases(b, &p1);
         self.set_bases(b, &p2);
 
-        // TODO erstatt 1 med vekten mellom l og k for vektet
-        // TODO veldig stygt, men funker for nå. Bør antageligvis lagre verdien på kanten eller deltaen i PQQ eller noe. Men uten å dele på 2.
-        let (w, _) = self.graph[l].iter().find(|(_,vv)| &k == vv).unwrap();
-        let two_delta = self.d_plus[l] + self.d_plus[k] + Finite(*w);
-        self.set_cycle_path_values(&p1, two_delta);
-        self.set_cycle_path_values(&p2, two_delta);
+        self.set_cycle_path_values(&p1, delta);
+        self.set_cycle_path_values(&p2, delta);
     }
 
-    fn backtrack_cycle(&self, l: usize, k: usize) -> (usize, Vec<usize>, Vec<usize>) {
+    fn backtrack(&mut self, l: usize, k: usize) -> (usize, Vec<(usize, (usize, W))>, Vec<(usize, (usize, W))>) {
+        let mut p1 = vec![(l, self.pred[l].unwrap())];
+        let mut p2 = vec![(k, self.pred[k].unwrap())];
+
         let mut u = self.basis[l];
-        let mut v= self.basis[k];
-        if self.d_plus[u] < self.d_plus[v] {
-            u = self.basis[k];
-            v = self.basis[l];
-        }
-        let mut p1 = Vec::new();
-        let mut p2 = Vec::new();
-        while self.d_plus[u] > self.d_plus[v] {
-            debug(format!("self.d_plus[{}] = {:?} > self.d_plus[{}] = {:?}", l, self.d_plus[u], v, self.d_plus[v]));
-            p1.push(u);
-            u = self.basis[self.mirror(u)];
-            debug(format!("u = {}", u));
-            p1.push(u);
-            u = self.basis[self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \n p1 = {:?}", u, p1).as_str())];
-            debug(format!("u = {}", u));
-        }
-        debug(format!("After the loop we have {} -> {}, {} -> {}, where d_plus[{}] = {:?}, d_plus[{}] = {:?}", l, u, k, v, u, self.d_plus[u], v, self.d_plus[v]));
-        while u != v {
+        let mut v = self.basis[k];
+
+        self.in_current_cycle[u] = true;
+        self.in_current_cycle[v] = true;
+
+        debug(format!("    Starting to backtrack from (l, k) = ({}, {}):", l, k));
+
+        loop {
+            debug(format!("        u = {}, v = {}", u, v));
+            debug(format!("        p1 = {:?}", p1));
+            debug(format!("        p2 = {:?}", p2));
             if u != self.s {
-                p1.push(u);
+                p1.push((self.basis[self.mirror(u)], (u, 0.into())));
                 u = self.basis[self.mirror(u)];
-                debug(format!("first u = {}, with d_minus[{}] = {:?}", u, u, self.d_minus[u]));
-                p1.push(u);
-                u = self.basis[self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np1 = {:?}\np2 = {:?}", u, p1, p2).as_str())];
-                debug(format!("second u = {}, with d_plus[{}] = {:?}", u, u, self.d_plus[u]));
-            }
-            else {
-                debug("u has reached s, halting for now".to_string());
+                self.in_current_cycle[u] = true;
+                let (mut uu, w) = self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np1 = {:?}", u, p1).as_str());
+                uu = self.basis[uu];
+                if self.in_current_cycle[uu] {
+                    debug(format!("        Found b = {}", uu));
+                    self.in_current_cycle[uu] = false;
+                    p2.pop();
+                    return (uu, p1, p2);
+                }
+                p1.push((uu, (u, w)));
+                u = uu;
+                self.in_current_cycle[u] = true;
             }
             if v != self.s {
-                p2.push(v);
+                p2.push((self.basis[self.mirror(v)], (v, 0.into())));
                 v = self.basis[self.mirror(v)];
-                debug(format!("first v = {}, with d_minus[{}] = {:?}", v, v, self.d_minus[v]));
-                p2.push(v);
-                v = self.basis[self.pred[v].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np1 = {:?}\np2 = {:?}", v, p1, p2).as_str())];
-                debug(format!("second v = {}, with d_plus[{}] = {:?}", v, v, self.d_plus[v]));
-            }
-            else {
-                debug("v has reached s, halting for now".to_string());
+                self.in_current_cycle[v] = true;
+                let (mut vv, w) = self.pred[v].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np2 = {:?}", v, p2).as_str());
+                vv = self.basis[vv];
+                if self.in_current_cycle[vv] {
+                    debug(format!("        Found b = {}", vv));
+                    self.in_current_cycle[vv] = false;
+                    p1.pop();
+                    return (vv, p1, p2);
+                }
+                p2.push((vv, (v, w)));
+                v = vv;
+                self.in_current_cycle[v] = true;
             }
         }
-        debug(format!("b = {}\np1 = {:?}, \np2 = {:?}", u, p1, p2));
-        return (u, p1, p2);
     }
 
-    fn set_bases(&mut self, b: usize, path: &Vec<usize>) {
+    fn set_bases(&mut self, b: usize, path: &Vec<(usize, (usize, W))>) {
         let mut ex = Vec::new();
-        for &u in path {
+        for &(u,_) in path {
             if self.basis[u] != b {
                 self.basis[u] = b;
                 ex.push(u);
@@ -250,25 +253,18 @@ impl <W: Weight> DerigsAlgorithm<W> {
         self.bases.entry(b).or_default().extend(ex);
     }
 
-    fn set_cycle_path_values(&mut self, path: &Vec<usize>, two_delta: Cost<W>) {
-        for i in 0..path.len() {
-            let u = path[i];
-            if ! self.is_outer(u) {
-                self.d_plus[u] = two_delta - self.d_minus[u];
-                debug(format!("    {} is not outer, so self.d_plus[{}] = {} now", u, u, self.d_plus[u].unwrap()));
+    fn set_cycle_path_values(&mut self, path: &Vec<(usize, (usize, W))>, delta: W) {
+        for &(u, (v, w)) in path {
+            self.in_current_cycle[u] = false;
+            if self.d_minus[v] + Finite(w) < self.d_plus[u] {
+                debug(format!("    {} is not outer, so self.d_plus[{}] = {:?} + {:?} = {:?} now. The old was {:?}", u, u, self.d_minus[v], Finite(w), self.d_minus[v] + Finite(w), self.d_plus[u]));
+                self.d_plus[u] = self.d_minus[v] + Finite(w);
                 self.scan(u);
             }
-            if i < path.len()-1 {
-                let v = path[i + 1];
-                // TODO erstatt med w for vektet
-                // TODO oooooooooooooooooooooooooooooooooooooooooooooooo
-                if self.d_plus[u] + Finite(1.into()) < self.d_minus[v] {
-                    // TODO aaaaaaaaaaaaaaaaaaaaaa
-                    debug(format!("    {} has no prev, so d_minus[{}] = {:?}, pred[{}] = {} now", v, v, self.d_plus[u] + Finite(1.into()), v, u));
-                    // TODO eeeeeeeeeeeeeeeeeeeeeeeeeee
-                    self.d_minus[v] = self.d_plus[u] + Finite(1.into());
-                    self.pred[v] = Some(u);
-                }
+            if self.d_plus[v] + Finite(w) < self.d_minus[u] {
+                debug(format!("    Found a better d_minus[{}], {:?} vs the old {:?}", u, self.d_plus[v] + Finite(w), self.d_minus[u]));
+                self.d_minus[u] = self.d_plus[v] + Finite(w);
+                self.pred[u] = Some((v, w));
             }
         }
     }
@@ -288,6 +284,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
     fn print_state(&self) {
         let mut pq = self.pq.clone().into_vec();
         pq.sort();
+        pq.reverse();
         debug("State:".to_string());
         debug(format!("    d_plus:  {:?}", self.d_plus));
         debug(format!("    d_minus: {:?}", self.d_minus));

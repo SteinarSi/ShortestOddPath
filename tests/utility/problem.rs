@@ -48,6 +48,7 @@ impl <W> Problem<W> for ShortestOddWalk
             (Infinite, Possible {cost: _, path}) => panic!("{}\nExpected to not find any {}-{}-walk, but found one anyway: {:?}", context, 0, sink, path),
             (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-walk of cost {}, but it did not", context, 0, sink, cost),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
+                assert_eq!(path.len() % 2, 0);
                 verify_path::<W, Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
             },
             _ => {}
@@ -82,6 +83,7 @@ impl <W> Problem<W> for ShortestOddPath
             (Infinite, Possible {cost: _, path}) => panic!("{}\nExpected to not find any {}-{}-path, but found one anyway: {:?}", context, 0, sink, path),
             (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-path of cost {}, but it did not", context, 0, sink, cost),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
+                assert_eq!(path.len() % 2, 0);
                 verify_path::<W,Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
                 for i in 0..path.len()-1 {
                     assert!( ! path[i+1..].contains(&path[i]), "{}\nThis was supposed to be a simple path, but {} was used at least twice!", context, path[i]);

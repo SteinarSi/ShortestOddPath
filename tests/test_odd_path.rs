@@ -56,6 +56,8 @@ mod large_paths {
     fn large1() { test("large1"); }
     #[test]
     fn large2() { test("large2"); }
+    #[test]
+    fn large3() { test("large3"); }
 }
 
 mod special_paths {
@@ -63,4 +65,10 @@ mod special_paths {
 
     #[test]
     fn gamma4() { test("gamma4"); }
+
+    #[test]
+    fn petersen() { test("petersen"); }
+
+    #[test]
+    fn grid5() { test("grid5"); }
 }

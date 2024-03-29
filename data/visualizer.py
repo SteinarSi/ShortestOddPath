@@ -2,24 +2,36 @@ import networkx as nx                 # pip install networkx scipy
 import matplotlib.pyplot as plt       # pip install matplotlib
 import os
 
-def visualize(directory):
+def visualize(directory, level=0):
     items = os.listdir(directory)
     for item in items:
         p = os.path.join(directory, item)
-        if os.path.isdir(p):
-            visualize(p)
-        elif os.path.isfile(p) and p.endswith('.in'):
+        if 'planar' in p:
+            continue
+        elif os.path.isdir(p):
+            print(" " * level + item + ": ")
+            visualize(p, level + 2)
+        elif os.path.isfile(p) and (p.endswith('.in') or p.endswith('.mtx')):
             try:
+                print(" " * level + item + ":")
                 g = read_graph(p)
-                plot_graph(g, p[:-3] + '.png')
+                if g is None:
+                    print(" " * (level+2) + "Graph to large, skipping.")
+                else:
+                    print(" " * (level+2) + "Plotting....")
+                    plot_graph(g, p[:-3] + '.png')
+                    print(" " * (level+2) + "Done!")
             except IOError:
                 print(f"Could not read '{p}' :-(")
 
 def read_graph(path):
     with open(path, 'r') as f:
-        _ = int(f.readline())
+        lines = [line for line in f.readlines() if not line.startswith("%")]
+        n = int(lines[0])
+        if n >= 100:
+            return None
         g = nx.Graph()
-        for uv in ([int(u) for u in uv.split()] for uv in f.readlines() if not uv.startswith('%')):
+        for uv in ([int(u) for u in uv.split()] for uv in lines[1:]):
             if len(uv) == 2:
                 u, v = uv
                 g.add_edge(u, v)
@@ -27,6 +39,7 @@ def read_graph(path):
                 u, v, w = uv
                 g.add_edge(u, v, weight=w)
             else:
+                print(uv)
                 raise IOError("Could not read the graph :-(")
         return g
 

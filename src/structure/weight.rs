@@ -9,9 +9,8 @@ pub trait Weight:
     Clone +
     PartialEq +
     FromStr<Err: Display + Debug> +
-    From<u64> +
+    From<u32> +
     PartialOrd +
-    Ord +
     Copy +
     Default +
     Debug +
@@ -27,9 +26,8 @@ impl<T> Weight for T
             Clone +
             PartialEq +
             FromStr<Err: Display + Debug> +
-            From<u64> +
+            From<u32> +
             PartialOrd +
-            Ord +
             Copy +
             Default +
             Debug +

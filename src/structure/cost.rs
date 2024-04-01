@@ -34,19 +34,15 @@ impl <W: Weight> Cost<W> {
         }
     }
 }
-impl <W: Weight> Ord for Cost<W> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match (self, other) {
-            (Infinite, Infinite) => Ordering::Equal,
-            (Infinite, Finite(_)) => Ordering::Greater,
-            (Finite(_), Infinite) => Ordering::Less,
-            (Finite(a), Finite(b)) => a.cmp(b),
-        }
-    }
-}
+
 impl <W: Weight> PartialOrd for Cost<W> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+        match (self, other) {
+            (Infinite, Infinite) => Some(Ordering::Equal),
+            (Infinite, Finite(_)) => Some(Ordering::Greater),
+            (Finite(_), Infinite) => Some(Ordering::Less),
+            (Finite(a), Finite(b)) => a.partial_cmp(b),
+        }
     }
 }
 
@@ -71,8 +67,8 @@ impl <W: Weight> Sub for Cost<W> {
     }
 }
 
-impl <W: Weight> From<Option<u64>> for Cost<W> {
-    fn from(value: Option<u64>) -> Self {
+impl <W: Weight> From<Option<u32>> for Cost<W> {
+    fn from(value: Option<u32>) -> Self {
         match value {
             None => Infinite,
             Some(x) => Finite(W::from(x)),
@@ -80,8 +76,8 @@ impl <W: Weight> From<Option<u64>> for Cost<W> {
     }
 }
 
-impl <E, W: Weight> From<Result<u64, E>> for Cost<W> {
-    fn from(value: Result<u64, E>) -> Self {
+impl <E, W: Weight> From<Result<u32, E>> for Cost<W> {
+    fn from(value: Result<u32, E>) -> Self {
         match value {
             Err(_) => Infinite,
             Ok(x) => Finite(W::from(x)),

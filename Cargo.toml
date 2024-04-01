@@ -9,9 +9,9 @@ edition = "2021"
 criterion = "0.5.1"
 
 [[bench]]
-name = "odd_walk"
+name = "bench_odd_walk"
 harness = false
 
 [[bench]]
-name = "odd_path"
+name = "bench_odd_path"
 harness = false

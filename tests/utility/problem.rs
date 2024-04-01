@@ -185,6 +185,6 @@ fn verify_path<W, Pr>(graph: &UndirectedGraph<W>, context: &String, expected_cos
     assert_eq!(sink, path[path.len()-1], "{}\nThe path ends at the wrong vertex! Expected {}, but it ends at {} for some strange reason that you should consider debugging.", context, sink, path[path.len()-1]);
     for i in 0..path.len()-1 {
         let (u, v) = (path[i], path[i+1]);
-        assert!(graph[u].iter().filter(|(_,vv)| vv == &v).next().is_some(), "{}\nOur path includes an edge from {} to {} that doesn't exist in the graph!", context, u, v);
+        assert!(graph[&u].iter().filter(|(_,vv)| vv == &v).next().is_some(), "{}\nOur path includes an edge from {} to {} that doesn't exist in the graph!", context, u, v);
     }
 }

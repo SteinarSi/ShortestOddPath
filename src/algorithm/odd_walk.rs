@@ -28,7 +28,7 @@ pub fn shortest_odd_walk<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usi
         let (u, even) = queue.pop_front().unwrap();
         if even {
             let distu = even_dist[u];
-            for &(w, v) in graph.neighbourhood(&u) {
+            for &(w, v) in &graph[&u] {
                 let distv = distu + Finite(w);
                 if distv < odd_dist[v] {
                     odd_dist[v] = distv;
@@ -39,7 +39,7 @@ pub fn shortest_odd_walk<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usi
         }
         else {
             let distu = odd_dist[u];
-            for &(w, v) in graph.neighbourhood(&u) {
+            for &(w, v) in &graph[&u] {
                 let distv = distu + Finite(w);
                 if distv < even_dist[v] {
                     even_dist[v] = distv;

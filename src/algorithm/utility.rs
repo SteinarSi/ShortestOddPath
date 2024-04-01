@@ -14,7 +14,7 @@ pub fn split_edges<'a, W: Weight, I>(g: &UndirectedGraph<W>, f: I) -> Undirected
     let mut ret = UndirectedGraph::new(n);
 
     for u in g.vertices() {
-        for &(w, v) in g.N(&u).iter().filter(|&&(_,v)| u < v) {
+        for &(w, v) in g[&u].iter().filter(|&&(_,v)| u < v) {
             if bans.contains(&(u,v)) {
                 ret.add_edge(u, (w,v));
             }

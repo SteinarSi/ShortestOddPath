@@ -47,7 +47,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
         let mut pq = BinaryHeap::new();
         d_plus[s] = Finite(0.into());
 
-        for &(w, v) in mirror_graph.neighbourhood(&s) {
+        for &(w, v) in &mirror_graph[&s] {
             pq.push(Reverse(Vertex(w, v)));
             d_minus[v] = Finite(w);
             pred[v] = Some((s,w));
@@ -140,7 +140,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
         self.completed[u] = true;
         debug(format!("    Scan(k = {})", u));
         let dist_u = self.d_plus[u].expect(format!("        We called self.scan({}), but self.d_plus[{}] is undefined!", u, u).as_str());
-        for &(w, v) in self.graph.neighbourhood(&u) {
+        for &(w, v) in &self.graph[&u] {
             let new_dist_v = dist_u + w;
             if ! self.completed[v] {
                 if Finite(new_dist_v) >= self.d_minus[v] { continue }
@@ -314,9 +314,9 @@ fn create_mirror_graph<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usize
     let new_n = orig_n * 2;
     let mut mirror = UndirectedGraph::new(new_n);
     for u in graph.vertices() {
-        mirror[u] = graph[u].clone();
+        mirror[&u] = graph[&u].clone();
         if u != s && u != t {
-            mirror[u + orig_n] = graph[u].iter()
+            mirror[&(u + orig_n)] = graph[&u].iter()
                 .filter(|&&(_, v)| v != s && v != t)
                 .map(|&(w, v)| (w, v + orig_n))
                 .collect()

@@ -33,11 +33,10 @@ impl <W: Weight> UndirectedGraph<W> {
     }
 }
 
-impl <W: Weight> Graph<usize, (W, usize)> for UndirectedGraph<W> {
+impl <W: Weight> Graph<'_, usize, (W, usize)> for UndirectedGraph<W> {
     fn n(&self) -> usize { self.n }
     fn m(&self) -> usize { self.m }
     fn vertices(&self) -> Vec<usize> { (0..self.n).collect() }
-    fn neighbourhood(&self, u: &usize) -> &Vec<(W, usize)> { &self.adj_list[*u] }
     fn add_edge(&mut self, u: usize, (w, v): (W, usize)) {
         self.adj_list[u].push((w, v));
         self.adj_list[v].push((w, u));
@@ -77,17 +76,17 @@ impl <W: Weight> FromStr for UndirectedGraph<W> {
     }
 }
 
-impl <W: Weight> Index<usize> for UndirectedGraph<W> {
+impl <W: Weight> Index<&usize> for UndirectedGraph<W> {
     type Output = Vec<(W, usize)>;
 
-    fn index(&self, u: usize) -> &Self::Output {
-        &self.adj_list[u]
+    fn index(&self, u: &usize) -> &Self::Output {
+        &self.adj_list[*u]
     }
 }
 
-impl <W: Weight> IndexMut<usize> for UndirectedGraph<W> {
-    fn index_mut(&mut self, u: usize) -> &mut Self::Output {
-        &mut self.adj_list[u]
+impl <W: Weight> IndexMut<&usize> for UndirectedGraph<W> {
+    fn index_mut(&mut self, u: &usize) -> &mut Self::Output {
+        &mut self.adj_list[*u]
     }
 }
 
@@ -96,7 +95,7 @@ impl <W: Weight> Debug for UndirectedGraph<W> {
         let mut ret = String::new();
         ret.push_str(format!("UndirectedGraph(n = {}, m = {}):\n", self.n, self.m).as_str());
         for u in self.vertices() {
-            ret.push_str(format!("  N({}) = {:?}\n", u, self[u]).as_str());
+            ret.push_str(format!("  N({}) = {:?}\n", u, self[&u]).as_str());
         }
         write!(f, "{}", ret)
     }

@@ -1,15 +1,14 @@
-use std::ops::{Index, IndexMut};
 use std::str::Split;
 
-pub trait Graph<'a, V, E>: Index<&'a V> + IndexMut<&'a V>
+pub trait Graph<'a, V, E>
     where V: PartialEq + Clone + 'a,
           E: PartialEq + Clone,
 {
     fn n(&self) -> usize;
     fn m(&self) -> usize;
-    fn vertices(&self) -> Vec<V>;
+    fn vertices(&'a self) -> impl Iterator<Item = V>;
     #[allow(non_snake_case)]
-    fn V(&self) -> Vec<V> {
+    fn V(&'a self) -> impl Iterator<Item = V> {
         self.vertices()
     }
     fn add_edge(&mut self, u: V, e: E);

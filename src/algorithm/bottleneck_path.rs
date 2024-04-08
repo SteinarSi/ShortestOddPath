@@ -22,7 +22,7 @@ pub fn shortest_bottleneck_path<W: Weight>(graph: &UndirectedGraph<W>, s: usize,
             // TODO finne den faktiske kostnaden til stien, om det er vektet
             let c = p.len() - 1;
             Possible {
-                cost: (c as u64).into(),
+                cost: (c as u32).into(),
                 path: p,
             }
         },

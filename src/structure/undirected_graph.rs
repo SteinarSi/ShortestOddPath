@@ -33,10 +33,10 @@ impl <W: Weight> UndirectedGraph<W> {
     }
 }
 
-impl <W: Weight> Graph<'_, usize, (W, usize)> for UndirectedGraph<W> {
+impl <'a, W: Weight> Graph<'a, usize, (W, usize)> for UndirectedGraph<W> {
     fn n(&self) -> usize { self.n }
     fn m(&self) -> usize { self.m }
-    fn vertices(&self) -> Vec<usize> { (0..self.n).collect() }
+    fn vertices(&'a self) -> impl Iterator<Item = usize> { 0..self.n }
     fn add_edge(&mut self, u: usize, (w, v): (W, usize)) {
         self.adj_list[u].push((w, v));
         self.adj_list[v].push((w, u));

@@ -5,11 +5,12 @@ use crate::structure::graph::Graph;
 use crate::structure::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::{BinaryHeap, BTreeMap};
+use crate::structure::edge::{BasicEdge, Edge};
 use crate::structure::todo::{Todo, Todo::*};
-use crate::structure::weight::Weight;
+use crate::structure::weight::{Weight, Weighted};
 
 pub struct DerigsAlgorithm<W: Weight> {
-    graph: UndirectedGraph<W>,
+    graph: UndirectedGraph<W,BasicEdge<W>>,
     d_plus: Vec<Cost<W>>,
     d_minus: Vec<Cost<W>>,
     pred: Vec<Option<(usize,W)>>,
@@ -29,12 +30,12 @@ In: an undirected graph G, two vertices s,t in V(G)
 Out: the shortest s-t-path in G that uses an odd number of edges, if one exists.
 */
 
-pub fn shortest_odd_path<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usize) -> PathResult<W> {
+pub fn shortest_odd_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> PathResult<W> {
     DerigsAlgorithm::init(graph, s, t).solve()
 }
 
 impl <W: Weight> DerigsAlgorithm<W> {
-    fn init(graph: &UndirectedGraph<W>, s: usize, t: usize) -> Self where Self: Sized {
+    fn init<E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> Self where Self: Sized {
         let mirror_graph = create_mirror_graph(graph, s, t);
         let n = mirror_graph.n();
 
@@ -47,10 +48,10 @@ impl <W: Weight> DerigsAlgorithm<W> {
         let mut pq = BinaryHeap::new();
         d_plus[s] = Finite(0.into());
 
-        for &(w, v) in &mirror_graph[&s] {
-            pq.push(Reverse(Vertex(w, v)));
-            d_minus[v] = Finite(w);
-            pred[v] = Some((s,w));
+        for e in &mirror_graph[&s] {
+            pq.push(Reverse(Vertex(e.weight(), e.to())));
+            d_minus[e.to()] = Finite(e.weight());
+            pred[e.to()] = Some((s,e.weight()));
         }
         completed[s] = true;
         completed[s + graph.n()] = true;
@@ -140,7 +141,9 @@ impl <W: Weight> DerigsAlgorithm<W> {
         self.completed[u] = true;
         debug(format!("    Scan(k = {})", u));
         let dist_u = self.d_plus[u].expect(format!("        We called self.scan({}), but self.d_plus[{}] is undefined!", u, u).as_str());
-        for &(w, v) in &self.graph[&u] {
+        for e in &self.graph[&u] {
+            let w = e.weight();
+            let v = e.to();
             let new_dist_v = dist_u + w;
             if ! self.completed[v] {
                 if Finite(new_dist_v) >= self.d_minus[v] { continue }
@@ -181,8 +184,8 @@ impl <W: Weight> DerigsAlgorithm<W> {
         self.set_bases(b, &p1);
         self.set_bases(b, &p2);
 
-        self.set_cycle_path_values(&p1, delta);
-        self.set_cycle_path_values(&p2, delta);
+        self.set_cycle_path_values(&p1);
+        self.set_cycle_path_values(&p2);
     }
 
     fn backtrack(&mut self, l: usize, k: usize) -> (usize, Vec<(usize, (usize, W))>, Vec<(usize, (usize, W))>) {
@@ -267,7 +270,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
         self.bases.entry(b).or_default().extend(ex);
     }
 
-    fn set_cycle_path_values(&mut self, path: &Vec<(usize, (usize, W))>, delta: W) {
+    fn set_cycle_path_values(&mut self, path: &Vec<(usize, (usize, W))>) {
         for &(u, (v, w)) in path {
             self.in_current_cycle[u] = false;
             if self.d_minus[v] + Finite(w) < self.d_plus[u] {
@@ -291,10 +294,6 @@ impl <W: Weight> DerigsAlgorithm<W> {
         }
     }
 
-    fn is_outer(&self, u: usize) -> bool {
-        self.d_plus[u].is_finite()
-    }
-
     fn print_state(&self) {
         let mut pq = self.pq.clone().into_vec();
         pq.sort();
@@ -309,16 +308,18 @@ impl <W: Weight> DerigsAlgorithm<W> {
     }
 }
 
-fn create_mirror_graph<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usize) -> UndirectedGraph<W> {
+fn create_mirror_graph<W: Weight,E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> UndirectedGraph<W,BasicEdge<W>> {
     let orig_n = graph.n();
     let new_n = orig_n * 2;
     let mut mirror = UndirectedGraph::new(new_n);
     for u in graph.vertices() {
-        mirror[&u] = graph[&u].clone();
+        mirror[&u] = graph[&u].iter()
+            .map(|e| BasicEdge::new(e.from(), e.to(), e.weight()))
+            .collect();
         if u != s && u != t {
             mirror[&(u + orig_n)] = graph[&u].iter()
-                .filter(|&&(_, v)| v != s && v != t)
-                .map(|&(w, v)| (w, v + orig_n))
+                .filter(|e| e.to() != s && e.to() != t)
+                .map(|e| BasicEdge::new(u + orig_n, e.to() + orig_n, e.weight()))
                 .collect()
         }
     }

@@ -1,6 +1,6 @@
-use std::collections::BTreeSet;
 use crate::algorithm::odd_path::shortest_odd_path;
 use crate::algorithm::utility::split_edges;
+use crate::structure::edge::{Edge};
 use crate::structure::graph::Graph;
 use crate::structure::path_result::{PathResult, PathResult::*};
 use crate::structure::undirected_graph::UndirectedGraph;
@@ -12,8 +12,8 @@ In: an undirected graph G, two vertices s,t in V(G), and a 'bottleneck' edge (u,
 Out: the shortest s-t-path in G that passes through (u,v), if one exists
 */
 
-pub fn shortest_bottleneck_path<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usize, bottleneck: (usize,usize)) -> PathResult<W> {
-    let split = split_edges(&graph, &BTreeSet::from([bottleneck]));
+pub fn shortest_bottleneck_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize, bottleneck: (usize,usize)) -> PathResult<W> {
+    let split = split_edges(&graph, vec![bottleneck]);
     match shortest_odd_path(&split, s, t) {
         Impossible => Impossible,
         Possible {cost: _, path} => {

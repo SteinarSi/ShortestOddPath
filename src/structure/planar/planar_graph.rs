@@ -82,11 +82,9 @@ impl <W: Weight> Debug for PlanarGraph<W> {
 
 
 mod test_planar_graph {
-    use crate::structure::planar::planar_graph::PlanarGraph;
-
     #[test]
     fn test_small_planar1() {
-        let planar: PlanarGraph<f64> = std::fs::read_to_string("data/planar_graphs/small_planar1/small_planar1.in")
+        let planar: super::PlanarGraph <f64> = std::fs::read_to_string("data/planar_graphs/small_planar1/small_planar1.in")
             .expect("No graph found")
             .parse()
             .expect("Could not parse graph");

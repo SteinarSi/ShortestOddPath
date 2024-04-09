@@ -1,8 +1,10 @@
-use std::str::Split;
+use crate::structure::edge::Edge;
+use crate::structure::weight::Weight;
 
-pub trait Graph<'a, V, E>
+pub trait Graph<'a, V, E, W>
     where V: PartialEq + Clone + 'a,
-          E: PartialEq + Clone,
+          E: Edge<W>,
+          W: Weight,
 {
     fn n(&self) -> usize;
     fn m(&self) -> usize;
@@ -11,15 +13,5 @@ pub trait Graph<'a, V, E>
     fn V(&'a self) -> impl Iterator<Item = V> {
         self.vertices()
     }
-    fn add_edge(&mut self, u: V, e: E);
-    fn parse_vertex(&self, rs: &mut Split<char>) -> Result<usize, String> {
-        let next = rs.next().ok_or("Expected an unsigned integer here, but found nothing!")?;
-        let u = next.parse().or(Err(format!("Could not read '{}' as an unsigned integer!", next)))?;
-        if u >= self.n() {
-            Err(format!("The parsed vertex {} is too large for a graph of size {}", u, self.n()))
-        }
-        else {
-            Ok(u)
-        }
-    }
+    fn add_edge(&mut self, e: E);
 }

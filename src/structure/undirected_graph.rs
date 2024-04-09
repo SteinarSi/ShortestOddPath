@@ -1,54 +1,62 @@
 use std::fmt::{Debug, Formatter};
+use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 use std::str::FromStr;
+use crate::structure::edge::Edge;
 use crate::structure::graph::Graph;
 use crate::structure::weight::Weight;
 
 #[derive(PartialEq, Clone)]
-pub struct UndirectedGraph<W: Weight> {
-    adj_list: Vec<Vec<(W,usize)>>,
+pub struct UndirectedGraph<W, E>
+    where W: Weight,
+          E: Edge<W>,
+{
+    adj_list: Vec<Vec<E>>,
     n: usize,
     m: usize,
+    _marker: PhantomData<W>,
 }
-impl <W: Weight> UndirectedGraph<W> {
+impl <W: Weight, E: Edge<W>> UndirectedGraph<W,E> {
     pub fn new(n: usize) -> Self {
         UndirectedGraph {
             adj_list: (0..n).map(|_| Vec::new()).collect(),
             n,
             m: 0,
+            _marker: PhantomData::default(),
         }
     }
 
     pub fn remove_edge(&mut self, (u,v): &(usize,usize)) {
         let len = self.adj_list[*u].len();
-        self.adj_list[*u].retain(|(_,w)| w != v);
-        self.adj_list[*v].retain(|(_,w)| w != u);
+        self.adj_list[*u].retain(|e| e.to() != *v);
+        self.adj_list[*v].retain(|e| e.to() != *u);
         if len != self.adj_list[*u].len() {
             self.m = self.m - 1;
         }
     }
-    pub(crate) unsafe fn add_directed_edge(&mut self, u: usize, e: (W, usize)) {
-        self.adj_list[u].push(e);
+    pub(crate) unsafe fn add_directed_edge(&mut self, e: E) {
+        self.adj_list[e.from()].push(e);
         self.m = self.m + 1;
     }
 
     pub fn is_adjacent(&self, u: usize, v: usize) -> bool {
-        self.adj_list[u].iter().find(|(_,w)| w == &v).is_some()
+        self.adj_list[u].iter().find(|e| e.to() == v).is_some()
     }
 }
 
-impl <'a, W: Weight> Graph<'a, usize, (W, usize)> for UndirectedGraph<W> {
+impl <'a, W: Weight, E: Edge<W>> Graph<'a, usize, E, W> for UndirectedGraph<W,E> {
     fn n(&self) -> usize { self.n }
     fn m(&self) -> usize { self.m }
     fn vertices(&'a self) -> impl Iterator<Item = usize> { 0..self.n }
-    fn add_edge(&mut self, u: usize, (w, v): (W, usize)) {
-        self.adj_list[u].push((w, v));
-        self.adj_list[v].push((w, u));
-        self.m = self.m + 1
+    fn add_edge(&mut self, e: E) {
+        let c = e.reverse();
+        self.adj_list[e.from()].push(e);
+        self.adj_list[c.from()].push(c);
+        self.m += 1;
     }
 }
 
-impl <W: Weight> From<String> for UndirectedGraph<W> {
+impl <W: Weight, E: Edge<W>> From<String> for UndirectedGraph<W,E> {
     fn from(value: String) -> Self {
         Self::from_str(value.as_str())
             .expect(format!(
@@ -58,7 +66,7 @@ impl <W: Weight> From<String> for UndirectedGraph<W> {
     }
 }
 
-impl <W: Weight> FromStr for UndirectedGraph<W> {
+impl <W: Weight, E: Edge<W>> FromStr for UndirectedGraph<W,E> {
     type Err = String;
 
     fn from_str(str: &str) -> Result<Self, Self::Err> {
@@ -69,32 +77,31 @@ impl <W: Weight> FromStr for UndirectedGraph<W> {
         let n = row1.split(' ').next().unwrap().parse().or(Err(format!("Could not parse '{}' as n", row1)))?;
         let mut ret = UndirectedGraph::new(n);
         for row in ls {
-            let mut rs = row.split(' ');
-            let u = ret.parse_vertex(&mut rs)?;
-            let v = ret.parse_vertex(&mut rs)?;
-            let www = rs.next().unwrap_or_else(|| "1");
-            let w = W::from_str(www).unwrap_or_else(|_|1.into());
-            ret.add_edge(u, (w, v));
+            let p: E = row.parse().or_else(|_| Err(format!("Could not parse the row: {}", row)))?;
+            ret.add_edge(p);
         }
         Ok(ret)
     }
 }
 
-impl <W: Weight> Index<&usize> for UndirectedGraph<W> {
-    type Output = Vec<(W, usize)>;
+impl <W: Weight, E: Edge<W>> Index<&usize> for UndirectedGraph<W,E> {
+    type Output = Vec<E>;
 
     fn index(&self, u: &usize) -> &Self::Output {
         &self.adj_list[*u]
     }
 }
 
-impl <W: Weight> IndexMut<&usize> for UndirectedGraph<W> {
+impl <W: Weight, E: Edge<W>> IndexMut<&usize> for UndirectedGraph<W,E> {
     fn index_mut(&mut self, u: &usize) -> &mut Self::Output {
         &mut self.adj_list[*u]
     }
 }
 
-impl <W: Weight> Debug for UndirectedGraph<W> {
+impl <W,E> Debug for UndirectedGraph<W,E>
+    where W: Weight,
+          E: Edge<W> + Debug
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut ret = String::new();
         ret.push_str(format!("UndirectedGraph(n = {}, m = {}):\n", self.n, self.m).as_str());

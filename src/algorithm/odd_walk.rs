@@ -5,6 +5,7 @@ use crate::structure::{
     path_result::{PathResult, PathResult::*},
 };
 use std::collections::VecDeque;
+use crate::structure::edge::Edge;
 use crate::structure::weight::Weight;
 use crate::utility::misc::repeat;
 
@@ -14,7 +15,7 @@ In: an undirected graph G, and two vertices s,t in V(G)
 Out: the shortest s-t-walk in G, that uses an odd number of edges
 */
 
-pub fn shortest_odd_walk<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usize) -> PathResult<W> {
+pub fn shortest_odd_walk<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> PathResult<W> {
     let n = graph.n();
     let mut even_dist: Vec<Cost<W>> = repeat(n, Infinite);
     let mut odd_dist = repeat(n, Infinite);
@@ -28,23 +29,23 @@ pub fn shortest_odd_walk<W: Weight>(graph: &UndirectedGraph<W>, s: usize, t: usi
         let (u, even) = queue.pop_front().unwrap();
         if even {
             let distu = even_dist[u];
-            for &(w, v) in &graph[&u] {
-                let distv = distu + Finite(w);
-                if distv < odd_dist[v] {
-                    odd_dist[v] = distv;
-                    queue.push_back((v, false));
-                    odd_prev[v] = Some(u);
+            for e in &graph[&u] {
+                let distv = distu + Finite(e.weight());
+                if distv < odd_dist[e.to()] {
+                    odd_dist[e.to()] = distv;
+                    queue.push_back((e.to(), false));
+                    odd_prev[e.to()] = Some(u);
                 }
             }
         }
         else {
             let distu = odd_dist[u];
-            for &(w, v) in &graph[&u] {
-                let distv = distu + Finite(w);
-                if distv < even_dist[v] {
-                    even_dist[v] = distv;
-                    queue.push_back((v, true));
-                    even_prev[v] = Some(u);
+            for e in &graph[&u] {
+                let distv = distu + Finite(e.weight());
+                if distv < even_dist[e.to()] {
+                    even_dist[e.to()] = distv;
+                    queue.push_back((e.to(), true));
+                    even_prev[e.to()] = Some(u);
                 }
             }
         }

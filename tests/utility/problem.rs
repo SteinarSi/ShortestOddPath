@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use shortest_odd_path::algorithm::bottleneck_path::shortest_bottleneck_path;
+use shortest_odd_path::algorithm::network_diversion::network_diversion;
 use shortest_odd_path::algorithm::odd_path::shortest_odd_path;
 use shortest_odd_path::algorithm::odd_walk::shortest_odd_walk;
 use shortest_odd_path::algorithm::two_disjoint_paths::two_disjoint_paths;
@@ -8,6 +9,7 @@ use shortest_odd_path::structure::cost::{Cost, Finite, Infinite};
 use shortest_odd_path::structure::edge::{BasicEdge, Edge};
 use shortest_odd_path::structure::graph::Graph;
 use shortest_odd_path::structure::path_result::{PathResult, PathResult::*};
+use shortest_odd_path::structure::planar::planar_graph::PlanarGraph;
 use shortest_odd_path::structure::undirected_graph::UndirectedGraph;
 use shortest_odd_path::structure::weight::Weight;
 
@@ -179,6 +181,45 @@ impl <W> Problem<W> for TwoDisjointPaths
     }
     fn compute(graph: &Self::GraphClass, (p1, p2, _): &Self::Query) -> Self::Output {
         two_disjoint_paths(graph, *p1, *p2)
+    }
+}
+
+pub struct NetworkDiversion;
+
+impl <W> Problem<W> for NetworkDiversion
+    where W: Weight,
+          <W as FromStr>::Err: Debug + Display,
+{
+    type Output = (W, Vec<usize>);
+    type Query = (usize,usize,(usize,usize),W);
+    type GraphClass = PlanarGraph<W>;
+
+    fn name() -> String {
+        "diversion".to_string()
+    }
+
+    fn parse_query(query: &str) -> Option<Self::Query> {
+        let mut words = query.split(' ');
+        Some((
+            words.next()?.parse().ok()?,
+            words.next()?.parse().ok()?,
+            (words.next()?.parse().ok()?, words.next()?.parse().ok()?),
+            words.next()?.parse().ok()?
+        ))
+    }
+
+    fn display_query((s,t,(u,v),_): &Self::Query) -> String {
+        format!("Network Diversion from {} to {}, every path must go through ({},{})", s,t,u,v)
+    }
+
+    fn verify_answer(_graph: &Self::GraphClass, &(_,_,_,expected): &Self::Query, actual: &Self::Output) {
+        println!("The answer is {:?}", actual);
+        assert_eq!(expected, actual.0);
+        // TODO actual tests
+    }
+
+    fn compute(graph: &Self::GraphClass, &(s,t,(u,v),_): &Self::Query) -> Self::Output {
+        network_diversion(graph, s, t,(u,v))
     }
 }
 

@@ -31,6 +31,10 @@ impl <W: Weight> UndirectedGraph<W> {
         self.adj_list[u].push(e);
         self.m = self.m + 1;
     }
+
+    pub fn is_adjacent(&self, u: usize, v: usize) -> bool {
+        self.adj_list[u].iter().find(|(_,w)| w == &v).is_some()
+    }
 }
 
 impl <'a, W: Weight> Graph<'a, usize, (W, usize)> for UndirectedGraph<W> {

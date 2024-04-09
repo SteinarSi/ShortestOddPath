@@ -1,11 +1,11 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
-use crate::structure::edge::{BasicEdge, Edge};
-use crate::structure::graph::Graph;
-use crate::structure::planar::planar_edge::{PlanarEdgeImpl};
-use crate::structure::planar::point::Point;
-use crate::structure::planar::pre_planar_graph::PrePlanarGraph;
-use crate::structure::undirected_graph::UndirectedGraph;
+use crate::structure::graph::edge::{BasicEdge, Edge};
+use crate::structure::graph::graph::Graph;
+use crate::structure::graph::planar::planar_edge::{PlanarEdgeImpl};
+use crate::structure::graph::planar::point::Point;
+use crate::structure::graph::planar::pre_planar_graph::PrePlanarGraph;
+use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
 
 pub struct PlanarGraph<W: Weight> {
@@ -87,7 +87,7 @@ impl <W: Weight> Debug for PlanarGraph<W> {
 
 
 mod test_planar_graph {
-    use crate::structure::graph::Graph;
+    use crate::structure::graph::graph::Graph;
 
     #[test]
     fn test_small_planar1() {

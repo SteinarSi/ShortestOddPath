@@ -1,4 +1,4 @@
-use crate::structure::edge::Edge;
+use crate::structure::graph::edge::Edge;
 use crate::structure::weight::Weight;
 
 pub trait Graph<'a, E, W>

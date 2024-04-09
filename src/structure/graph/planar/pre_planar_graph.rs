@@ -1,12 +1,12 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
-use crate::structure::edge::{BasicEdge, Edge};
-use crate::structure::graph::Graph;
-use crate::structure::planar::planar_edge::PlanarEdgeImpl;
-use crate::structure::planar::pre_planar_edge::PrePlanarEdge;
-use crate::structure::planar::planar_graph::PlanarGraph;
-use crate::structure::planar::point::{compare_edges_clockwise, Point};
-use crate::structure::undirected_graph::UndirectedGraph;
+use crate::structure::graph::edge::{BasicEdge, Edge};
+use crate::structure::graph::graph::Graph;
+use crate::structure::graph::planar::planar_edge::PlanarEdgeImpl;
+use crate::structure::graph::planar::planar_graph::PlanarGraph;
+use crate::structure::graph::planar::point::{compare_edges_clockwise, Point};
+use crate::structure::graph::planar::pre_planar_edge::PrePlanarEdge;
+use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
 
 pub struct PrePlanarGraph<W: Weight> {

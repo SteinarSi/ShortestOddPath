@@ -6,11 +6,11 @@ use shortest_odd_path::algorithm::odd_path::shortest_odd_path;
 use shortest_odd_path::algorithm::odd_walk::shortest_odd_walk;
 use shortest_odd_path::algorithm::two_disjoint_paths::two_disjoint_paths;
 use shortest_odd_path::structure::cost::{Cost, Finite, Infinite};
-use shortest_odd_path::structure::edge::{BasicEdge, Edge};
-use shortest_odd_path::structure::graph::Graph;
+use shortest_odd_path::structure::graph::edge::{BasicEdge, Edge};
+use shortest_odd_path::structure::graph::graph::Graph;
 use shortest_odd_path::structure::path_result::{PathResult, PathResult::*};
-use shortest_odd_path::structure::planar::planar_graph::PlanarGraph;
-use shortest_odd_path::structure::undirected_graph::UndirectedGraph;
+use shortest_odd_path::structure::graph::planar::planar_graph::PlanarGraph;
+use shortest_odd_path::structure::graph::undirected_graph::UndirectedGraph;
 use shortest_odd_path::structure::weight::Weight;
 
 pub trait Problem<W>

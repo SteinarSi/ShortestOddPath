@@ -1,7 +1,7 @@
 use crate::structure::path_result::PathResult::*;
 use crate::algorithm::bottleneck_path::shortest_bottleneck_path;
-use crate::structure::edge::BasicEdge;
-use crate::structure::undirected_graph::UndirectedGraph;
+use crate::structure::graph::edge::BasicEdge;
+use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
 
 /**

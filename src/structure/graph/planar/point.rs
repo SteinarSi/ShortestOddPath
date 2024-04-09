@@ -3,7 +3,7 @@ use std::cmp::Ordering::{Equal, Greater, Less};
 use std::ops::Neg;
 use std::str::FromStr;
 use num::Complex;
-use crate::structure::planar::pre_planar_edge::PrePlanarEdge;
+use crate::structure::graph::planar::pre_planar_edge::PrePlanarEdge;
 use crate::structure::weight::Weight;
 
 #[derive(PartialEq, Clone)]

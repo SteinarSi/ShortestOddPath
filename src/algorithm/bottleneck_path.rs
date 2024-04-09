@@ -1,9 +1,9 @@
 use crate::algorithm::odd_path::shortest_odd_path;
 use crate::algorithm::utility::split_edges;
-use crate::structure::edge::{Edge};
-use crate::structure::graph::Graph;
+use crate::structure::graph::edge::{Edge};
+use crate::structure::graph::graph::Graph;
 use crate::structure::path_result::{PathResult, PathResult::*};
-use crate::structure::undirected_graph::UndirectedGraph;
+use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
 
 /**

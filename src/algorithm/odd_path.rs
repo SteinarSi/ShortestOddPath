@@ -1,11 +1,11 @@
 use std::cmp::Reverse;
 use crate::structure::path_result::{PathResult, PathResult::*};
 use crate::structure::cost::{Cost::*, Cost};
-use crate::structure::graph::Graph;
-use crate::structure::undirected_graph::UndirectedGraph;
+use crate::structure::graph::graph::Graph;
+use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::{BinaryHeap, BTreeMap};
-use crate::structure::edge::{BasicEdge, Edge};
+use crate::structure::graph::edge::{BasicEdge, Edge};
 use crate::structure::todo::{Todo, Todo::*};
 use crate::structure::weight::{Weight, Weighted};
 

@@ -1,6 +1,6 @@
 use std::str::FromStr;
-use crate::structure::edge::Edge;
-use crate::structure::planar::planar_edge::PlanarEdgeImpl;
+use crate::structure::graph::edge::Edge;
+use crate::structure::graph::planar::planar_edge::PlanarEdgeImpl;
 use crate::structure::weight::{Weight, Weighted};
 
 #[derive(PartialEq, Clone, Debug)]

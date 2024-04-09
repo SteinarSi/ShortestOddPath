@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use crate::structure::edge::{Edge};
+use crate::structure::graph::edge::{Edge};
 use crate::structure::weight::{Weight, Weighted};
 
 pub trait PlanarEdge<W: Weight>: Edge<W> {

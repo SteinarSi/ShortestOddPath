@@ -2,8 +2,8 @@ use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 use std::str::FromStr;
-use crate::structure::edge::Edge;
-use crate::structure::graph::Graph;
+use crate::structure::graph::edge::Edge;
+use crate::structure::graph::graph::Graph;
 use crate::structure::weight::Weight;
 
 #[derive(PartialEq, Clone)]

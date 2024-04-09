@@ -1,10 +1,10 @@
 use queues::{IsQueue, Queue};
 use crate::algorithm::odd_path::shortest_odd_path;
 use crate::algorithm::utility::split_edges;
-use crate::structure::graph::Graph;
+use crate::structure::graph::graph::Graph;
 use crate::structure::path_result::{PathResult::*};
-use crate::structure::planar::planar_edge::PlanarEdgeImpl;
-use crate::structure::planar::planar_graph::PlanarGraph;
+use crate::structure::graph::planar::planar_edge::PlanarEdgeImpl;
+use crate::structure::graph::planar::planar_graph::PlanarGraph;
 use crate::structure::weight::Weight;
 use crate::utility::misc::{debug, repeat};
 

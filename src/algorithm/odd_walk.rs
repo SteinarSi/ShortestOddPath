@@ -1,11 +1,11 @@
 use crate::structure::{
-    undirected_graph::UndirectedGraph,
-    graph::Graph,
+    graph::undirected_graph::UndirectedGraph,
+    graph::graph::Graph,
     cost::{Cost, Cost::*},
     path_result::{PathResult, PathResult::*},
 };
 use std::collections::VecDeque;
-use crate::structure::edge::Edge;
+use crate::structure::graph::edge::Edge;
 use crate::structure::weight::Weight;
 use crate::utility::misc::repeat;
 

@@ -1,7 +1,8 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
+use crate::structure::edge::{BasicEdge, Edge};
 use crate::structure::graph::Graph;
-use crate::structure::planar::line::Line;
+use crate::structure::planar::planar_edge::{PlanarEdgeImpl};
 use crate::structure::planar::point::Point;
 use crate::structure::planar::pre_planar_graph::PrePlanarGraph;
 use crate::structure::undirected_graph::UndirectedGraph;
@@ -9,14 +10,14 @@ use crate::structure::weight::Weight;
 
 pub struct PlanarGraph<W: Weight> {
     points: Vec<Point>,
-    lines: Vec<Line<W>>,
+    lines: Vec<PlanarEdgeImpl<W>>,
     adj_list: Vec<Vec<usize>>,
-    dual: UndirectedGraph<W>,
+    dual: UndirectedGraph<W, BasicEdge<W>>, // TODO egen type for dual-kanter?
     m: usize,
 }
 
 impl <'a, W: Weight> PlanarGraph<W> {
-    pub fn new(points: Vec<Point>, lines: Vec<Line<W>>, adj_list: Vec<Vec<usize>>, dual: UndirectedGraph<W>, m: usize) -> Self {
+    pub fn new(points: Vec<Point>, lines: Vec<PlanarEdgeImpl<W>>, adj_list: Vec<Vec<usize>>, dual: UndirectedGraph<W,BasicEdge<W>>, m: usize) -> Self {
         PlanarGraph {
             points,
             lines,
@@ -31,11 +32,11 @@ impl <'a, W: Weight> PlanarGraph<W> {
     pub fn points(&self, u: usize) -> &Point {
         &self.points[u]
     }
-    pub fn dual(&self) -> &UndirectedGraph<W> {
+    pub fn dual(&self) -> &UndirectedGraph<W,BasicEdge<W>> {
         &self.dual
     }
     #[allow(non_snake_case)]
-    pub fn N(&self, u: usize) -> Vec<Line<W>> {
+    pub fn N(&self, u: usize) -> Vec<PlanarEdgeImpl<W>> {
         self.adj_list[u]
             .iter()
             .map(|v| self.lines[*v].clone())
@@ -43,13 +44,13 @@ impl <'a, W: Weight> PlanarGraph<W> {
     }
 }
 
-impl <'a, W: Weight> Graph<'a, Point, Line<W>> for PlanarGraph<W> {
+impl <'a, W: Weight> Graph<'a, Point, PlanarEdgeImpl<W>, W> for PlanarGraph<W> {
     fn n(&self) -> usize { self.points.len() }
     fn m(&self) -> usize { self.m }
     fn vertices(&'a self) -> impl Iterator<Item = Point> {
         self.points.clone().into_iter()
     }
-    fn add_edge(&mut self, _: Point, e: Line<W>) {
+    fn add_edge(&mut self, e: PlanarEdgeImpl<W>) {
         let b = e.reverse();
         self.adj_list[e.from].push(self.lines.len());
         self.lines.push(e);

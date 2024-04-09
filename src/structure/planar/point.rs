@@ -3,7 +3,7 @@ use std::cmp::Ordering::{Equal, Greater, Less};
 use std::ops::Neg;
 use std::str::FromStr;
 use num::Complex;
-use crate::structure::planar::pre_planar_line::PrePlanarLine;
+use crate::structure::planar::pre_planar_edge::PrePlanarEdge;
 use crate::structure::weight::Weight;
 
 #[derive(PartialEq, Clone)]
@@ -25,7 +25,7 @@ impl FromStr for Point {
     }
 }
 
-pub fn compare_edges_clockwise<'a, W: Weight>(center: &'a Point, points: &'a Vec<Point>, edges: &'a Vec<PrePlanarLine<W>>) -> impl FnMut(&usize, &usize) -> Ordering + 'a {
+pub fn compare_edges_clockwise<'a, W: Weight>(center: &'a Point, points: &'a Vec<Point>, edges: &'a Vec<PrePlanarEdge<W>>) -> impl FnMut(&usize, &usize) -> Ordering + 'a {
     |&a, &b| {
         let fa = angle_from_center(center, &points[edges[a].to]);
         let fb = angle_from_center(center, &points[edges[b].to]);

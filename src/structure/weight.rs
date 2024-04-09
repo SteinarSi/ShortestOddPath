@@ -33,3 +33,7 @@ impl<T> Weight for T
             Debug +
             Display,
 {}
+
+pub trait Weighted<W: Weight> {
+    fn weight(&self) -> W;
+}

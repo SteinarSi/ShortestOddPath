@@ -1,8 +1,9 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
+use crate::structure::edge::{BasicEdge, Edge};
 use crate::structure::graph::Graph;
-use crate::structure::planar::line::Line;
-use crate::structure::planar::pre_planar_line::PrePlanarLine;
+use crate::structure::planar::planar_edge::PlanarEdgeImpl;
+use crate::structure::planar::pre_planar_edge::PrePlanarEdge;
 use crate::structure::planar::planar_graph::PlanarGraph;
 use crate::structure::planar::point::{compare_edges_clockwise, Point};
 use crate::structure::undirected_graph::UndirectedGraph;
@@ -10,7 +11,7 @@ use crate::structure::weight::Weight;
 
 pub struct PrePlanarGraph<W: Weight> {
     points: Vec<Point>,
-    edges: Vec<PrePlanarLine<W>>,
+    edges: Vec<PrePlanarEdge<W>>,
     adj_list: Vec<Vec<usize>>,
     m: usize,
 }
@@ -27,15 +28,6 @@ impl <W: Weight> PrePlanarGraph<W> {
     pub fn add_vertex(&mut self, u: Point) {
         self.points.push(u);
         self.adj_list.push(Vec::new());
-    }
-
-    pub fn add_edge(&mut self, e: PrePlanarLine<W>) {
-        let b = e.reverse();
-        self.adj_list[e.from].push(self.edges.len());
-        self.edges.push(e);
-        self.adj_list[b.from].push(self.edges.len());
-        self.edges.push(b);
-        self.m += 1;
     }
 
     pub fn planarize(mut self) -> Result<PlanarGraph<W>, &'static str> {
@@ -104,17 +96,18 @@ impl <W: Weight> PrePlanarGraph<W> {
         Ok(())
     }
 
-    fn construct_dual(f: usize, lines: &Vec<Line<W>>) -> UndirectedGraph<W> {
+    fn construct_dual(f: usize, lines: &Vec<PlanarEdgeImpl<W>>) -> UndirectedGraph<W,BasicEdge<W>> {
         let mut dual = UndirectedGraph::new(f);
         for i in (0..lines.len()).step_by(2) {
             let e = &lines[i];
-            dual.add_edge(e.left, (e.weight, e.right));
+            // TODO egen type for dual-graf-kanter?
+            dual.add_edge(BasicEdge::new(e.left, e.right, e.weight));
         }
         dual
     }
 }
 
-impl <'a, W: Weight> Graph<'a, Point, PrePlanarLine<W>> for PrePlanarGraph<W> {
+impl <'a, W: Weight> Graph<'a, Point, PrePlanarEdge<W>, W> for PrePlanarGraph<W> {
     fn n(&self) -> usize {
         self.points.len()
     }
@@ -127,8 +120,13 @@ impl <'a, W: Weight> Graph<'a, Point, PrePlanarLine<W>> for PrePlanarGraph<W> {
         self.points.clone().into_iter()
     }
 
-    fn add_edge(&mut self, _u: Point, e: PrePlanarLine<W>) {
-        self.add_edge(e);
+    fn add_edge(&mut self, e: PrePlanarEdge<W>) {
+        let b = e.reverse();
+        self.adj_list[e.from].push(self.edges.len());
+        self.edges.push(e);
+        self.adj_list[b.from].push(self.edges.len());
+        self.edges.push(b);
+        self.m += 1;
     }
 }
 

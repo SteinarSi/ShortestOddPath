@@ -1,8 +1,8 @@
 mod pre_planar_graph;
-mod pre_planar_line;
+mod pre_planar_edge;
 mod point;
 
 pub mod planar_graph;
-pub mod line;
+pub mod planar_edge;
 
 

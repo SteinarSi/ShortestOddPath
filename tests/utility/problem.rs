@@ -5,7 +5,8 @@ use shortest_odd_path::algorithm::odd_path::shortest_odd_path;
 use shortest_odd_path::algorithm::odd_walk::shortest_odd_walk;
 use shortest_odd_path::algorithm::two_disjoint_paths::two_disjoint_paths;
 use shortest_odd_path::structure::cost::{Cost, Finite, Infinite};
-use shortest_odd_path::structure::edge::BasicEdge;
+use shortest_odd_path::structure::edge::{BasicEdge, Edge};
+use shortest_odd_path::structure::graph::Graph;
 use shortest_odd_path::structure::path_result::{PathResult, PathResult::*};
 use shortest_odd_path::structure::undirected_graph::UndirectedGraph;
 use shortest_odd_path::structure::weight::Weight;
@@ -16,11 +17,12 @@ pub trait Problem<W>
 {
     type Output;
     type Query;
+    type GraphClass;
     fn name() -> String;
     fn parse_query(query: &str) -> Option<Self::Query>;
     fn display_query(query: &Self::Query) -> String;
-    fn verify_answer(graph: &UndirectedGraph<W,BasicEdge<W>>, expected: &Self::Query, actual: &Self::Output);
-    fn compute(graph: &UndirectedGraph<W,BasicEdge<W>>, query: &Self::Query) -> Self::Output;
+    fn verify_answer(graph: &Self::GraphClass, expected: &Self::Query, actual: &Self::Output);
+    fn compute(graph: &Self::GraphClass, query: &Self::Query) -> Self::Output;
 }
 
 pub struct ShortestOddWalk;
@@ -30,6 +32,7 @@ impl <W> Problem<W> for ShortestOddWalk
 {
     type Output = PathResult<W>;
     type Query = (usize, Cost<W>);
+    type GraphClass = UndirectedGraph<W,BasicEdge<W>>;
     fn name() -> String {
         String::from("walk")
     }
@@ -42,7 +45,7 @@ impl <W> Problem<W> for ShortestOddWalk
     fn display_query((t, _): &Self::Query) -> String {
         format!("Walk from 0 to {}:", t)
     }
-    fn verify_answer(graph: &UndirectedGraph<W,BasicEdge<W>>, query: &Self::Query, actual: &Self::Output) {
+    fn verify_answer(graph: &Self::GraphClass, query: &Self::Query, actual: &Self::Output) {
         let (sink, expected) = query;
         let context = Self::display_query(query);
         match (expected, actual) {
@@ -50,12 +53,12 @@ impl <W> Problem<W> for ShortestOddWalk
             (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-walk of cost {}, but it did not", context, 0, sink, cost),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
                 assert_eq!(path.len() % 2, 0);
-                verify_path::<W, Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
+                verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
             },
             _ => {}
         }
     }
-    fn compute(graph: &UndirectedGraph<W,BasicEdge<W>>, (sink, _): &Self::Query) -> Self::Output {
+    fn compute(graph: &Self::GraphClass, (sink, _): &Self::Query) -> Self::Output {
         shortest_odd_walk(graph, 0, *sink)
     }
 }
@@ -67,6 +70,7 @@ impl <W> Problem<W> for ShortestOddPath
 {
     type Output = PathResult<W>;
     type Query = (usize, Cost<W>);
+    type GraphClass = UndirectedGraph<W,BasicEdge<W>>;
     fn name() -> String { String::from("path") }
     fn parse_query(query: &str) -> Option<Self::Query> {
         let mut words = query.split(' ');
@@ -77,7 +81,7 @@ impl <W> Problem<W> for ShortestOddPath
     fn display_query((t, _): &Self::Query) -> String {
         format!("Path from 0 to {}:", t)
     }
-    fn verify_answer(graph: &UndirectedGraph<W,BasicEdge<W>>, query: &Self::Query, actual: &Self::Output) {
+    fn verify_answer(graph: &Self::GraphClass, query: &Self::Query, actual: &Self::Output) {
         let (sink, expected) = query;
         let context = Self::display_query(query);
         match (expected, actual) {
@@ -85,7 +89,7 @@ impl <W> Problem<W> for ShortestOddPath
             (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-path of cost {}, but it did not", context, 0, sink, cost),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
                 assert_eq!(path.len() % 2, 0);
-                verify_path::<W,Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
+                verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
                 for i in 0..path.len()-1 {
                     assert!( ! path[i+1..].contains(&path[i]), "{}\nThis was supposed to be a simple path, but {} was used at least twice!", context, path[i]);
                 }
@@ -93,7 +97,7 @@ impl <W> Problem<W> for ShortestOddPath
             _ => {}
         }
     }
-    fn compute(graph: &UndirectedGraph<W,BasicEdge<W>>, (sink, _): &Self::Query) -> Self::Output {
+    fn compute(graph: &Self::GraphClass, (sink, _): &Self::Query) -> Self::Output {
         shortest_odd_path(graph, 0, *sink)
     }
 }
@@ -104,6 +108,7 @@ impl <W> Problem<W> for ShortestBottleneckPath
 {
     type Output = PathResult<W>;
     type Query = (usize, usize, (usize,usize), Cost<W>);
+    type GraphClass = UndirectedGraph<W,BasicEdge<W>>;
     fn name() -> String { String::from("bottleneck") }
     fn parse_query(query: &str) -> Option<Self::Query> {
         let mut words = query.split(' ');
@@ -118,21 +123,21 @@ impl <W> Problem<W> for ShortestBottleneckPath
         format!("Bottlenecked path from {} to {}, passing through ({},{}):", s, t, u, v)
     }
 
-    fn verify_answer(graph: &UndirectedGraph<W,BasicEdge<W>>, query: &Self::Query, actual: &Self::Output) {
+    fn verify_answer(graph: &Self::GraphClass, query: &Self::Query, actual: &Self::Output) {
         let (source,sink, (u,v), expected_cost) = query;
         let context = Self::display_query(query);
         match (expected_cost, actual) {
             (Infinite, Possible{cost: _, path: _}) => panic!("{}\nExpected not to find a path, but the alg did anyway!", context),
             (Finite(c), Impossible) => panic!("{}\nExpected a path of cost {}, but the alg couldn't find it!", context, c),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
-                verify_path::<W,Self>(graph, &context, *expected_cost, *actual_cost, path, *source, *sink);
+                verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(graph, &context, *expected_cost, *actual_cost, path, *source, *sink);
                 assert!((0..path.len()-1).find(|&i| (path[i], path[i+1]) == (*u,*v)).is_some(), "{}\nThe path was supposed to go through the bottleneck of ({},{}), but it doesn't.", context, u, v);
             },
             _ => {},
         }
     }
 
-    fn compute(graph: &UndirectedGraph<W,BasicEdge<W>>, (source, sink, (u,v), _): &Self::Query) -> Self::Output {
+    fn compute(graph: &Self::GraphClass, (source, sink, (u,v), _): &Self::Query) -> Self::Output {
         shortest_bottleneck_path::<W,BasicEdge<W>>(graph, *source, *sink, (*u,*v))
     }
 }
@@ -144,6 +149,7 @@ impl <W> Problem<W> for TwoDisjointPaths
 {
     type Output = Option<(W, Vec<usize>, Vec<usize>)>;
     type Query = ((usize, usize), (usize, usize), Cost<W>);
+    type GraphClass = UndirectedGraph<W,BasicEdge<W>>;
     fn name() -> String { String::from("disjoint") }
     fn parse_query(query: &str) -> Option<Self::Query> {
         let mut words = query.split(' ');
@@ -156,7 +162,7 @@ impl <W> Problem<W> for TwoDisjointPaths
     fn display_query(((s1,t1), (s2,t2), _): &Self::Query) -> String {
         format!("Disjoint path from {} to {}, and from {} to {}:", s1, t1, s2, t2)
     }
-    fn verify_answer(graph: &UndirectedGraph<W,BasicEdge<W>>, query: &Self::Query, actual: &Self::Output) {
+    fn verify_answer(graph: &Self::GraphClass, query: &Self::Query, actual: &Self::Output) {
         let ((s1, t1), (s2,t2), cost) = query;
         let context = Self::display_query(query);
         match (cost, actual) {
@@ -165,20 +171,22 @@ impl <W> Problem<W> for TwoDisjointPaths
             (Finite(c), Some((w, p1,p2))) => {
                 assert!( ! p1.iter().any(|u| p2.contains(&u)), "\n{}The two paths were supposed to use different vertices, but they don't:\n{:?}\nand\n{:?}", context, p1,p2);
                 assert_eq!(*c, *w, "{}\nExpected two paths from {} to {} and from {} to {} with a combined lenght of {}, but found two of length {} instead!\n\n{:?}\nand\n{:?}", context, s1, t1, s2, t2, c, w, p1, p2);
-                verify_path::<W,Self>(&graph, &context, 0.into(), 0.into(), p1, *s1, *t1);
-                verify_path::<W,Self>(&graph, &context, 0.into(), 0.into(), p2, *s2, *t2);
+                verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(&graph, &context, 0.into(), 0.into(), p1, *s1, *t1);
+                verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(&graph, &context, 0.into(), 0.into(), p2, *s2, *t2);
             }
             _ => {}
         }
     }
-    fn compute(graph: &UndirectedGraph<W,BasicEdge<W>>, (p1, p2, _): &Self::Query) -> Self::Output {
+    fn compute(graph: &Self::GraphClass, (p1, p2, _): &Self::Query) -> Self::Output {
         two_disjoint_paths(graph, *p1, *p2)
     }
 }
 
-fn verify_path<W, Pr>(graph: &UndirectedGraph<W,BasicEdge<W>>, context: &String, expected_cost: W, actual_cost: W, path: &Vec<usize>, source: usize, sink: usize)
+fn verify_path<'a, W, E, G, Pr>(graph: &G, context: &String, expected_cost: W, actual_cost: W, path: &Vec<usize>, source: usize, sink: usize)
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
+          E: Edge<W>,
+          G: Graph<'a, E, W>,
           Pr: Problem<W>,
 {
     assert_eq!(expected_cost, actual_cost, "{}\nThe costs don't match: expected {}, but got {}.\nThe offending path: {:?}", context, expected_cost, actual_cost, path);

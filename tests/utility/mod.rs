@@ -7,6 +7,8 @@ pub mod problem;
 
 pub fn meta_test<Pr, W: Weight>(folder: &str, name: &str)
     where Pr: Problem<W>,
+          <Pr as Problem<W>>::GraphClass: FromStr + Debug,
+          <<Pr as Problem<W>>::GraphClass as FromStr>::Err: Debug,
           W: Weight,
           <W as FromStr>::Err: Display + Debug,
 {

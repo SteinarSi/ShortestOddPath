@@ -38,13 +38,10 @@ impl <W: Weight, E: Edge<W>> UndirectedGraph<W,E> {
         self.adj_list[e.from()].push(e);
         self.m = self.m + 1;
     }
-
-    pub fn is_adjacent(&self, u: usize, v: usize) -> bool {
-        self.adj_list[u].iter().find(|e| e.to() == v).is_some()
-    }
 }
 
-impl <'a, W: Weight, E: Edge<W>> Graph<'a, usize, E, W> for UndirectedGraph<W,E> {
+impl <'a, W: Weight, E: Edge<W>> Graph<'a, E, W> for UndirectedGraph<W,E> {
+    type V = usize;
     fn n(&self) -> usize { self.n }
     fn m(&self) -> usize { self.m }
     fn vertices(&'a self) -> impl Iterator<Item = usize> { 0..self.n }
@@ -53,6 +50,9 @@ impl <'a, W: Weight, E: Edge<W>> Graph<'a, usize, E, W> for UndirectedGraph<W,E>
         self.adj_list[e.from()].push(e);
         self.adj_list[c.from()].push(c);
         self.m += 1;
+    }
+    fn is_adjacent(&self, u: usize, v: usize) -> bool {
+        self.adj_list[u].iter().find(|e| e.to() == v).is_some()
     }
 }
 

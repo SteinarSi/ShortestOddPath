@@ -107,7 +107,8 @@ impl <W: Weight> PrePlanarGraph<W> {
     }
 }
 
-impl <'a, W: Weight> Graph<'a, Point, PrePlanarEdge<W>, W> for PrePlanarGraph<W> {
+impl <'a, W: Weight> Graph<'a, PrePlanarEdge<W>, W> for PrePlanarGraph<W> {
+    type V = Point;
     fn n(&self) -> usize {
         self.points.len()
     }
@@ -127,6 +128,9 @@ impl <'a, W: Weight> Graph<'a, Point, PrePlanarEdge<W>, W> for PrePlanarGraph<W>
         self.adj_list[b.from].push(self.edges.len());
         self.edges.push(b);
         self.m += 1;
+    }
+    fn is_adjacent(&self, u: usize, v: usize) -> bool {
+        self.adj_list[u].iter().find(|e|self.edges[**e].to == v).is_some()
     }
 }
 

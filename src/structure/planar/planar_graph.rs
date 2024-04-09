@@ -44,7 +44,8 @@ impl <'a, W: Weight> PlanarGraph<W> {
     }
 }
 
-impl <'a, W: Weight> Graph<'a, Point, PlanarEdgeImpl<W>, W> for PlanarGraph<W> {
+impl <'a, W: Weight> Graph<'a, PlanarEdgeImpl<W>, W> for PlanarGraph<W> {
+    type V = Point;
     fn n(&self) -> usize { self.points.len() }
     fn m(&self) -> usize { self.m }
     fn vertices(&'a self) -> impl Iterator<Item = Point> {
@@ -57,6 +58,10 @@ impl <'a, W: Weight> Graph<'a, Point, PlanarEdgeImpl<W>, W> for PlanarGraph<W> {
         self.adj_list[b.from].push(self.lines.len());
         self.lines.push(b);
         self.m += 1;
+    }
+
+    fn is_adjacent(&self, u: usize, v: usize) -> bool {
+        self.adj_list[u].iter().find(|e|self.lines[**e].to == v).is_some()
     }
 }
 
@@ -82,6 +87,8 @@ impl <W: Weight> Debug for PlanarGraph<W> {
 
 
 mod test_planar_graph {
+    use crate::structure::graph::Graph;
+
     #[test]
     fn test_small_planar1() {
         let planar: super::PlanarGraph <f64> = std::fs::read_to_string("data/planar_graphs/small_planar1/small_planar1.in")

@@ -32,7 +32,7 @@ impl <W> Problem<W> for ShortestOddWalk
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
 {
-    type Output = PathResult<W>;
+    type Output = PathResult<W,BasicEdge<W>>;
     type Query = (usize, Cost<W>);
     type GraphClass = UndirectedGraph<W,BasicEdge<W>>;
     fn name() -> String {
@@ -54,7 +54,7 @@ impl <W> Problem<W> for ShortestOddWalk
             (Infinite, Possible {cost: _, path}) => panic!("{}\nExpected to not find any {}-{}-walk, but found one anyway: {:?}", context, 0, sink, path),
             (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-walk of cost {}, but it did not", context, 0, sink, cost),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
-                assert_eq!(path.len() % 2, 0);
+                assert_eq!(path.len() % 2, 1);
                 verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
             },
             _ => {}
@@ -70,7 +70,7 @@ impl <W> Problem<W> for ShortestOddPath
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
 {
-    type Output = PathResult<W>;
+    type Output = PathResult<W,BasicEdge<W>>;
     type Query = (usize, Cost<W>);
     type GraphClass = UndirectedGraph<W,BasicEdge<W>>;
     fn name() -> String { String::from("path") }
@@ -90,10 +90,11 @@ impl <W> Problem<W> for ShortestOddPath
             (Infinite, Possible {cost: _, path}) => panic!("{}\nExpected to not find any {}-{}-path, but found one anyway: {:?}", context, 0, sink, path),
             (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-path of cost {}, but it did not", context, 0, sink, cost),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
-                assert_eq!(path.len() % 2, 0);
+                println!("Path: {:?}", path);
+                assert_eq!(path.len() % 2, 1);
                 verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
                 for i in 0..path.len()-1 {
-                    assert!( ! path[i+1..].contains(&path[i]), "{}\nThis was supposed to be a simple path, but {} was used at least twice!", context, path[i]);
+                    assert!(path[i+1..].iter().find(|e| e.to() == path[i].from()).is_none(), "{}\nThis was supposed to be a simple path, but {} was used at least twice!", context, path[i].from());
                 }
             },
             _ => {}
@@ -108,7 +109,7 @@ impl <W> Problem<W> for ShortestBottleneckPath
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
 {
-    type Output = PathResult<W>;
+    type Output = PathResult<W,BasicEdge<W>>;
     type Query = (usize, usize, (usize,usize), Cost<W>);
     type GraphClass = UndirectedGraph<W,BasicEdge<W>>;
     fn name() -> String { String::from("bottleneck") }
@@ -133,7 +134,7 @@ impl <W> Problem<W> for ShortestBottleneckPath
             (Finite(c), Impossible) => panic!("{}\nExpected a path of cost {}, but the alg couldn't find it!", context, c),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
                 verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(graph, &context, *expected_cost, *actual_cost, path, *source, *sink);
-                assert!((0..path.len()-1).find(|&i| (path[i], path[i+1]) == (*u,*v)).is_some(), "{}\nThe path was supposed to go through the bottleneck of ({},{}), but it doesn't.", context, u, v);
+                assert!(path.iter().find(|e| e.from() == *u && e.to() == *v).is_some(), "{}\nThe path was supposed to go through the bottleneck of ({},{}), but it doesn't.", context, u, v);
             },
             _ => {},
         }
@@ -149,7 +150,7 @@ impl <W> Problem<W> for TwoDisjointPaths
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
 {
-    type Output = Option<(W, Vec<usize>, Vec<usize>)>;
+    type Output = Option<(W, Vec<BasicEdge<W>>, Vec<BasicEdge<W>>)>;
     type Query = ((usize, usize), (usize, usize), Cost<W>);
     type GraphClass = UndirectedGraph<W,BasicEdge<W>>;
     fn name() -> String { String::from("disjoint") }
@@ -172,7 +173,7 @@ impl <W> Problem<W> for TwoDisjointPaths
             (Infinite, Some((_, p1, p2))) => panic!("{}\nWe didn't expect to find two vertex-disjoint paths from {} to {} and from {} to {}, but we did anyway: \n{:?}\nand\n{:?} ",context, s1, t1, s2, t2, p1,p2),
             (Finite(c), Some((w, p1,p2))) => {
                 assert!( ! p1.iter().any(|u| p2.contains(&u)), "\n{}The two paths were supposed to use different vertices, but they don't:\n{:?}\nand\n{:?}", context, p1,p2);
-                assert_eq!(*c, *w, "{}\nExpected two paths from {} to {} and from {} to {} with a combined lenght of {}, but found two of length {} instead!\n\n{:?}\nand\n{:?}", context, s1, t1, s2, t2, c, w, p1, p2);
+                assert_eq!(*c, *w, "{}\nExpected two paths from {} to {} and from {} to {} with a combined length of {}, but found two of length {} instead!\n\n{:?}\nand\n{:?}", context, s1, t1, s2, t2, c, w, p1, p2);
                 verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(&graph, &context, 0.into(), 0.into(), p1, *s1, *t1);
                 verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(&graph, &context, 0.into(), 0.into(), p2, *s2, *t2);
             }
@@ -190,7 +191,7 @@ impl <W> Problem<W> for NetworkDiversion
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
 {
-    type Output = (W, Vec<usize>);
+    type Output = (W, Vec<BasicEdge<W>>);
     type Query = (usize,usize,(usize,usize),W);
     type GraphClass = PlanarGraph<W>;
 
@@ -223,7 +224,7 @@ impl <W> Problem<W> for NetworkDiversion
     }
 }
 
-fn verify_path<'a, W, E, G, Pr>(graph: &G, context: &String, expected_cost: W, actual_cost: W, path: &Vec<usize>, source: usize, sink: usize)
+fn verify_path<'a, W, E, G, Pr>(graph: &G, context: &String, expected_cost: W, actual_cost: W, path: &Vec<E>, source: usize, sink: usize)
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
           E: Edge<W>,
@@ -231,10 +232,9 @@ fn verify_path<'a, W, E, G, Pr>(graph: &G, context: &String, expected_cost: W, a
           Pr: Problem<W>,
 {
     assert_eq!(expected_cost, actual_cost, "{}\nThe costs don't match: expected {}, but got {}.\nThe offending path: {:?}", context, expected_cost, actual_cost, path);
-    assert_eq!(source, path[0], "{}\nThe path starts at the wrong vertex! Expected {}, but yet it starts at {} for some reason", context, source, path[0]);
-    assert_eq!(sink, path[path.len()-1], "{}\nThe path ends at the wrong vertex! Expected {}, but it ends at {} for some strange reason that you should consider debugging.", context, sink, path[path.len()-1]);
-    for i in 0..path.len()-1 {
-        let (u, v) = (path[i], path[i+1]);
-        assert!(graph.is_adjacent(u, v), "{}\nOur path includes an edge from {} to {} that doesn't exist in the graph!", context, u, v);
+    assert_eq!(source, path[0].from(), "{}\nThe path starts at the wrong vertex! Expected {}, but yet it starts at {} for some reason", context, source, path[0].from());
+    assert_eq!(sink, path[path.len()-1].to(), "{}\nThe path ends at the wrong vertex! Expected {}, but it ends at {} for some strange reason that you should consider debugging.", context, sink, path[path.len()-1].to());
+    for e in path {
+        assert!(graph.is_adjacent(e.from(), e.to()), "{}\nOur path includes an edge from {} to {} that doesn't exist in the graph!", context, e.from(), e.to())
     }
 }

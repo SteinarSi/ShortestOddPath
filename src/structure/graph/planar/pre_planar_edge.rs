@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use crate::structure::graph::edge::Edge;
+use crate::structure::graph::edge::{Edge};
 use crate::structure::graph::planar::planar_edge::PlanarEdgeImpl;
 use crate::structure::weight::{Weight, Weighted};
 
@@ -35,6 +35,25 @@ impl <W: Weight> Edge<W> for PrePlanarEdge<W> {
             left: self.right,
             right: self.left,
         }
+    }
+
+    fn subdivide(&self, middle: usize) -> (Self, Self) {
+        (
+            PrePlanarEdge {
+                from: self.from,
+                to: middle,
+                weight: self.weight,
+                left: self.left,
+                right: self.right,
+            },
+            PrePlanarEdge {
+                from: middle,
+                to: self.to,
+                weight: 0.into(),
+                left: self.left,
+                right: self.right,
+            }
+        )
     }
 }
 

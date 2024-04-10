@@ -32,6 +32,25 @@ impl <W: Weight> Edge<W> for PlanarEdgeImpl<W> {
             right: self.left,
         }
     }
+
+    fn subdivide(&self, middle: usize) -> (Self, Self) {
+        (
+            PlanarEdgeImpl {
+                from: self.from,
+                to: middle,
+                weight: self.weight,
+                left: self.left,
+                right: self.right,
+            },
+            PlanarEdgeImpl {
+                from: middle,
+                to: self.to,
+                weight: 0.into(),
+                left: self.left,
+                right: self.right,
+            }
+        )
+    }
 }
 
 impl <W: Weight> PlanarEdge<W> for PlanarEdgeImpl<W> {

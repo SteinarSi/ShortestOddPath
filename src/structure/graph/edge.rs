@@ -6,6 +6,7 @@ pub trait Edge<W: Weight>: Weighted<W> + FromStr + Debug + Clone {
     fn from(&self) -> usize;
     fn to(&self) -> usize;
     fn reverse(&self) -> Self;
+    fn subdivide(&self, middle: usize) -> (Self, Self);
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -34,6 +35,21 @@ impl <W: Weight> Edge<W> for BasicEdge<W> {
             to: self.from,
             weight: self.weight,
         }
+    }
+
+    fn subdivide(&self, middle: usize) -> (Self, Self) {
+        (
+            BasicEdge {
+                from: self.from,
+                to: middle,
+                weight: 0.into(),
+            },
+            BasicEdge {
+                from: middle,
+                to: self.to,
+                weight: 0.into(),
+            }
+        )
     }
 }
 

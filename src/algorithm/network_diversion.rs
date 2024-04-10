@@ -1,6 +1,7 @@
 use queues::{IsQueue, Queue};
 use crate::algorithm::odd_path::shortest_odd_path;
 use crate::algorithm::utility::split_edges;
+use crate::structure::graph::edge::{BasicEdge, Edge};
 use crate::structure::graph::graph::Graph;
 use crate::structure::path_result::{PathResult::*};
 use crate::structure::graph::planar::planar_edge::PlanarEdgeImpl;
@@ -8,7 +9,7 @@ use crate::structure::graph::planar::planar_graph::PlanarGraph;
 use crate::structure::weight::Weight;
 use crate::utility::misc::{debug, repeat};
 
-pub fn network_diversion<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du, dv): (usize,usize)) -> (W, Vec<usize>) {
+pub fn network_diversion<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du, dv): (usize,usize)) -> (W, Vec<BasicEdge<W>>) {
     let path: Vec<(usize, usize)> = bfs(graph, s, t, (du, dv))
         .expect("Could not find an s-t-path at all, the graph isn't connected")
         .iter().map(|l| (l.from, l.to))
@@ -18,13 +19,13 @@ pub fn network_diversion<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, 
         .find(|l| l.to == dv)
         .expect("The diversion edge doesn't exist")
         .clone();
-    let split = split_edges(graph.dual(), path);
+    let (split, map) = split_edges(graph.dual(), path);
     match shortest_odd_path(&split, diversion.left, diversion.right) {
         Impossible => {
             panic!("Uhhhhh there really should be an odd path here, but we couldn't find it");
         }
         Possible {cost, path} => {
-            (cost, path.into_iter().filter(|u| u < &&graph.f()).collect())
+            (cost, path.into_iter().filter(|u| u.to() < graph.f()).collect())
         }
     }
 }

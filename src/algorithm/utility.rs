@@ -4,31 +4,57 @@ use crate::structure::graph::graph::Graph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::{Weight};
 
-pub fn split_edges<W, I, E>(g: &UndirectedGraph<W,E>, f: I) -> UndirectedGraph<W,BasicEdge<W>>
+//                                                                                    TODO burde være en vilkårlige Edge<W> istedet for BasicEdge eller E
+pub fn split_edges<W, I, E>(g: &UndirectedGraph<W,E>, f: I) -> (UndirectedGraph<W,E>, impl Fn(&BasicEdge<W>) -> Option<BasicEdge<W>>)
     where W: Weight,
           I: IntoIterator<Item = (usize,usize)>,
           E: Edge<W>,
 {
     // Make sure that all the banned edges are ordered, so we can check other edges quicker
     let bans: BTreeSet<(usize,usize)> = f.into_iter().map(|(u,v)| if v < u {(v,u)} else {(u,v)} ).collect();
-    let n = g.n() + g.m() - bans.len();
+    let extra = g.m() - bans.len();
+    let old_n = g.n();
+    let new_n = g.n() + extra;
     let mut m = g.n();
-    let mut ret = UndirectedGraph::new(n);
+    let mut map = Vec::new();
+    let mut split = UndirectedGraph::new(new_n);
 
     for u in g.vertices() {
         for e in g[&u].iter().filter(|&e| u < e.to()) {
             if bans.contains(&(u,e.to())) {
-                ret.add_edge(BasicEdge::new(u, e.to(), e.weight()));
+                split.add_edge(e.clone());
             }
             else {
-                // Split the weight into two, so that the sum of the new edges is equal to the original edge.
-                // Why not divide them equally? Because we don't know if we're working with integers or floats or
-                //  cyclotomics or whatever, and don't want to risk off-by-one errors.
-                ret.add_edge(BasicEdge::new(u, m, e.weight()));
-                ret.add_edge(BasicEdge::new(m, e.to(), 0.into()));
+                let (a, b) = e.subdivide(m);
+                split.add_edge(a);
+                split.add_edge(b);
+                map.push(e.clone());
                 m += 1;
             }
         }
     }
-    ret
+
+    (split, move |e| {
+        if e.from() >= old_n {
+            None
+        }
+        else if e.to() < old_n {
+            Some(e.clone())
+        }
+        else {
+            let b = &map[e.to() - old_n];
+            if b.from() == e.from() {
+                // TODO dette burde vært generisk
+                Some(BasicEdge::new(b.from(), b.to(), b.weight()))
+                // Some(b.clone())
+            }
+            else {
+                // TODO burde være generisk
+                let bb = b.reverse();
+                Some(BasicEdge::new(bb.from(), bb.to(), bb.weight()))
+                // Some(b.reverse())
+            }
+
+        }
+    })
 }

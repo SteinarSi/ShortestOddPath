@@ -13,7 +13,7 @@ pub struct DerigsAlgorithm<W: Weight> {
     graph: UndirectedGraph<W,BasicEdge<W>>,
     d_plus: Vec<Cost<W>>,
     d_minus: Vec<Cost<W>>,
-    pred: Vec<Option<(usize,W)>>,
+    pred: Vec<Option<BasicEdge<W>>>,
     basis: Vec<usize>,
     bases: BTreeMap<usize, Vec<usize>>,
     s: usize,
@@ -30,7 +30,7 @@ In: an undirected graph G, two vertices s,t in V(G)
 Out: the shortest s-t-path in G that uses an odd number of edges, if one exists.
 */
 
-pub fn shortest_odd_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> PathResult<W> {
+pub fn shortest_odd_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> PathResult<W,BasicEdge<W>> {
     DerigsAlgorithm::init(graph, s, t).solve()
 }
 
@@ -51,7 +51,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
         for e in &mirror_graph[&s] {
             pq.push(Reverse(Vertex(e.weight(), e.to())));
             d_minus[e.to()] = Finite(e.weight());
-            pred[e.to()] = Some((s,e.weight()));
+            pred[e.to()] = Some(e.clone());
         }
         completed[s] = true;
         completed[s + graph.n()] = true;
@@ -72,7 +72,7 @@ impl <W: Weight> DerigsAlgorithm<W> {
         }
     }
 
-    fn solve(&mut self) -> PathResult<W> {
+    fn solve(&mut self) -> PathResult<W,BasicEdge<W>> {
         if self.s == self.t {
             return Impossible;
         }
@@ -88,28 +88,20 @@ impl <W: Weight> DerigsAlgorithm<W> {
 
         debug(format!("\n\nAn {}-{}-path exists. Backtracking...", self.s, self.t));
 
-        let mut cost: W = 0.into();
-        let mut current = self.t;
-        let mut path = vec![self.t];
-
-        while current != self.mirror(self.s) {
-            debug(format!("    current: {}", current));
-
-            let (v, w) = self.pred[current].expect(format!("    Tried to backtrack and find the path, but self.pred[{}] was undefined!", current).as_str());
-            current = v;
-            cost = cost + w;
-            debug(format!("    current: {}", current));
-            path.push(current);
-            current = self.mirror(current);
+        let mut curr = self.pred[self.t].clone().unwrap();
+        let mut cost = curr.weight();
+        let mut path = vec![curr.clone()];
+        while curr.from() != self.s {
+            curr = self.pred[self.mirror(curr.from())].clone().unwrap();
+            cost = cost + curr.weight();
+            path.push(BasicEdge::new(self.to_real_vertex(curr.from()), self.to_real_vertex(curr.to()), curr.weight()));
         }
         path.reverse();
-        path = path.into_iter().map(|u| if u >= self.orig_n { u - self.orig_n } else {u} ).collect();
 
         debug(format!("Path of cost {} is possible: {:?\n\n}",cost, path));
-
         Possible {
             cost,
-            path
+            path,
         }
     }
     // Return true if the search is done. Either because we found the shortest odd s-t-path, or because none exist.
@@ -151,7 +143,9 @@ impl <W: Weight> DerigsAlgorithm<W> {
                 debug(format!("        d_minus[{}] = {}", v, new_dist_v));
                 debug(format!("        pred[{}] = {}", v, u));
                 self.d_minus[v] = Finite(new_dist_v);
-                self.pred[v] = Some((u,w));
+                // self.pred[v] = Some((u,w));
+                // TODO ikke klone hele tiden
+                self.pred[v] = Some(e.clone());
                 self.pq.push(Reverse(Vertex(new_dist_v, v)));
             }
 
@@ -162,7 +156,8 @@ impl <W: Weight> DerigsAlgorithm<W> {
                     debug(format!("        d_minus[{}] = {}", v, new_dist_v));
                     debug(format!("        pred[{}] = {}", v, u));
                     self.d_minus[v] = Finite(new_dist_v);
-                    self.pred[v] = Some((u,w));
+                    // self.pred[v] = Some((u,w));
+                    self.pred[v] = Some(e.clone());
                 }
             }
         }
@@ -189,8 +184,11 @@ impl <W: Weight> DerigsAlgorithm<W> {
     }
 
     fn backtrack(&mut self, l: usize, k: usize) -> (usize, Vec<(usize, (usize, W))>, Vec<(usize, (usize, W))>) {
-        let mut p1 = vec![(self.basis[l], self.pred[l].unwrap())];
-        let mut p2 = vec![(self.basis[k], self.pred[k].unwrap())];
+        // TODO ny måte å backtracke på
+        let p1e = self.pred[l].clone().unwrap();
+        let p2e = self.pred[k].clone().unwrap();
+        let mut p1 = vec![(self.basis[l], (p1e.from(), p1e.weight()))];
+        let mut p2 = vec![(self.basis[k], (p2e.from(), p2e.weight()))];
 
         let mut u = self.basis[l];
         let mut v = self.basis[k];
@@ -208,7 +206,10 @@ impl <W: Weight> DerigsAlgorithm<W> {
                 p1.push((self.basis[self.mirror(u)], (u, 0.into())));
                 u = self.basis[self.mirror(u)];
                 self.in_current_cycle[u] = true;
-                let (mut uu, w) = self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np1 = {:?}", u, p1).as_str());
+                // let (mut uu, w) = self.pred[u].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np1 = {:?}", u, p1).as_str());
+                let e = self.pred[u].clone().expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np1 = {:?}", u, p1).as_str());
+                let mut uu = e.from();
+                let w = e.weight();
                 uu = self.basis[uu];
                 if self.in_current_cycle[uu] {
                     debug(format!("        Found b = {}", uu));
@@ -231,7 +232,10 @@ impl <W: Weight> DerigsAlgorithm<W> {
                 p2.push((self.basis[self.mirror(v)], (v, 0.into())));
                 v = self.basis[self.mirror(v)];
                 self.in_current_cycle[v] = true;
-                let (mut vv, w) = self.pred[v].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np2 = {:?}", v, p2).as_str());
+                // let (mut vv, w) = self.pred[v].expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np2 = {:?}", v, p2).as_str());
+                let e = self.pred[v].clone().expect(format!("Tried to find pred[{}], but it was None! \nSo far we had this: \np2 = {:?}", v, p2).as_str());
+                let mut vv = e.from();
+                let w = e.weight();
                 vv = self.basis[vv];
                 if self.in_current_cycle[vv] {
                     debug(format!("        Found b = {}", vv));
@@ -281,7 +285,9 @@ impl <W: Weight> DerigsAlgorithm<W> {
             if self.d_plus[v] + Finite(w) < self.d_minus[u] {
                 debug(format!("    Found a better d_minus[{}], {:?} vs the old {:?}", u, self.d_plus[v] + Finite(w), self.d_minus[u]));
                 self.d_minus[u] = self.d_plus[v] + Finite(w);
-                self.pred[u] = Some((v, w));
+                // self.pred[u] = Some((v, w));
+                self.pred[u] = Some(BasicEdge::new(v, u, w));
+                // TODO ny måte å backtracke på
             }
         }
     }
@@ -291,6 +297,15 @@ impl <W: Weight> DerigsAlgorithm<W> {
             u + self.orig_n
         } else {
             u - self.orig_n
+        }
+    }
+
+    fn to_real_vertex(&self, u: usize) -> usize {
+        if u >= self.orig_n {
+            u - self.orig_n
+        }
+        else {
+            u
         }
     }
 

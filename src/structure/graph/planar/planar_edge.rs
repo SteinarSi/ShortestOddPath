@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use crate::structure::graph::edge::{Edge};
 use crate::structure::weight::{Weight, Weighted};
@@ -7,7 +8,7 @@ pub trait PlanarEdge<W: Weight>: Edge<W> {
     fn right(&self) -> usize;
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone)]
 pub struct PlanarEdgeImpl<W: Weight> {
     pub from: usize,
     pub to: usize,
@@ -18,6 +19,12 @@ pub struct PlanarEdgeImpl<W: Weight> {
 
 impl <W: Weight> Weighted<W> for PlanarEdgeImpl<W> {
     fn weight(&self) -> W { self.weight }
+}
+
+impl<W: Weight> Debug for PlanarEdgeImpl<W> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} -{}-> {}", self.from, self.weight, self.to)
+    }
 }
 
 impl <W: Weight> Edge<W> for PlanarEdgeImpl<W> {

@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
+use std::cmp::Ordering::Equal;
 use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Sub};
 use std::str::FromStr;
 pub use Cost::*;
 use crate::structure::weight::Weight;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Cost<W: Weight> {
     Infinite,
     Finite(W),
@@ -43,6 +44,14 @@ impl <W: Weight> PartialOrd for Cost<W> {
             (Finite(_), Infinite) => Some(Ordering::Less),
             (Finite(a), Finite(b)) => a.partial_cmp(b),
         }
+    }
+}
+
+impl <W: Weight> Eq for Cost<W> {}
+
+impl <W: Weight> Ord for Cost<W> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Equal)
     }
 }
 

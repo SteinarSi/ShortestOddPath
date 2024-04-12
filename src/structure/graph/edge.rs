@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use crate::structure::weight::{Weight, Weighted};
 
@@ -9,7 +9,7 @@ pub trait Edge<W: Weight>: Weighted<W> + FromStr + Debug + Clone {
     fn subdivide(&self, middle: usize) -> (Self, Self);
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone)]
 pub struct BasicEdge<W: Weight> {
     from: usize,
     to: usize,
@@ -50,6 +50,17 @@ impl <W: Weight> Edge<W> for BasicEdge<W> {
                 weight: 0.into(),
             }
         )
+    }
+}
+
+impl <W: Weight> Debug for BasicEdge<W> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.weight == 1.into() {
+            write!(f, "{} --> {}", self.from, self.to)
+        }
+        else {
+            write!(f, "{} -{}-> {}", self.from, self.weight, self.to)
+        }
     }
 }
 

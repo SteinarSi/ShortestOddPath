@@ -5,6 +5,7 @@ use crate::structure::graph::graph::Graph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::{BinaryHeap, BTreeMap};
+use crate::algorithm::utility;
 use crate::structure::graph::edge::{BasicEdge, Edge};
 use crate::structure::todo::{Todo, Todo::*};
 use crate::structure::weight::{Weight, Weighted};
@@ -36,7 +37,7 @@ pub fn shortest_odd_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s:
 
 impl <W: Weight> DerigsAlgorithm<W> {
     fn init<E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> Self where Self: Sized {
-        let mirror_graph = create_mirror_graph(graph, s, t);
+        let mirror_graph = utility::create_mirror_graph(graph, s, t);
         let n = mirror_graph.n();
 
         debug(format!("Looking for an odd {}-{}-path here:\n{:?}\n", s, t, mirror_graph));
@@ -321,22 +322,4 @@ impl <W: Weight> DerigsAlgorithm<W> {
         debug(format!("    Completed: {:?}", self.graph.vertices().into_iter().filter(|&u| self.completed[u]).collect::<Vec<usize>>()));
         debug(format!("    Current cycle: {:?}", self.in_current_cycle));
     }
-}
-
-fn create_mirror_graph<W: Weight,E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> UndirectedGraph<W,BasicEdge<W>> {
-    let orig_n = graph.n();
-    let new_n = orig_n * 2;
-    let mut mirror = UndirectedGraph::new(new_n);
-    for u in graph.vertices() {
-        mirror[&u] = graph[&u].iter()
-            .map(|e| BasicEdge::new(e.from(), e.to(), e.weight()))
-            .collect();
-        if u != s && u != t {
-            mirror[&(u + orig_n)] = graph[&u].iter()
-                .filter(|e| e.to() != s && e.to() != t)
-                .map(|e| BasicEdge::new(u + orig_n, e.to() + orig_n, e.weight()))
-                .collect()
-        }
-    }
-    mirror
 }

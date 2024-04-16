@@ -55,7 +55,18 @@ impl <W: Weight> Edge<W> for PrePlanarEdge<W> {
             }
         )
     }
+    fn shift_by(&self, offset: i64) -> Self {
+        PrePlanarEdge {
+            from: (self.from as i64 + offset) as usize,
+            to: (self.to as i64 + offset) as usize,
+            weight: self.weight,
+            left: self.left,
+            right: self.right,
+        }
+    }
 }
+
+impl <W: Weight> Eq for PrePlanarEdge<W> {}
 
 impl <W: Weight> Weighted<W> for PrePlanarEdge<W> {
     fn weight(&self) -> W { self.weight }

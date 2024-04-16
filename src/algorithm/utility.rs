@@ -1,11 +1,10 @@
 use std::collections::BTreeSet;
-use crate::structure::graph::edge::{BasicEdge, Edge};
+use crate::structure::graph::edge::{Edge};
 use crate::structure::graph::graph::Graph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::{Weight};
 
-//                                                                                    TODO burde være en vilkårlige Edge<W> istedet for BasicEdge eller E
-pub fn split_edges<W, I, E>(g: &UndirectedGraph<W,E>, f: I) -> (UndirectedGraph<W,E>, impl Fn(&BasicEdge<W>) -> Option<BasicEdge<W>>)
+pub fn split_edges<W, I, E>(g: &UndirectedGraph<W,E>, f: I) -> (UndirectedGraph<W,E>, impl Fn(&E) -> Option<E>)
     where W: Weight,
           I: IntoIterator<Item = (usize,usize)>,
           E: Edge<W>,
@@ -44,35 +43,45 @@ pub fn split_edges<W, I, E>(g: &UndirectedGraph<W,E>, f: I) -> (UndirectedGraph<
         else {
             let b = &map[e.to() - old_n];
             if b.from() == e.from() {
-                // TODO dette burde vært generisk
-                Some(BasicEdge::new(b.from(), b.to(), b.weight()))
-                // Some(b.clone())
+                Some(b.clone())
             }
             else {
-                // TODO burde være generisk
-                let bb = b.reverse();
-                Some(BasicEdge::new(bb.from(), bb.to(), bb.weight()))
-                // Some(b.reverse())
+                Some(b.reverse())
             }
 
         }
     })
 }
 
-pub fn create_mirror_graph<W: Weight,E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> UndirectedGraph<W,BasicEdge<W>> {
+pub fn create_mirror_graph<W: Weight,E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> UndirectedGraph<W,E> {
     let orig_n = graph.n();
     let new_n = orig_n * 2;
     let mut mirror = UndirectedGraph::new(new_n);
     for u in graph.vertices() {
-        mirror[&u] = graph[&u].iter()
-            .map(|e| BasicEdge::new(e.from(), e.to(), e.weight()))
-            .collect();
+        mirror[&u] = graph[&u].clone();
         if u != s && u != t {
             mirror[&(u + orig_n)] = graph[&u].iter()
                 .filter(|e| e.to() != s && e.to() != t)
-                .map(|e| BasicEdge::new(u + orig_n, e.to() + orig_n, e.weight()))
+                .map(|e| e.shift_by(orig_n as i64))
                 .collect()
         }
     }
     mirror
+}
+
+#[cfg(test)]
+mod test_mirror {
+    use crate::structure::graph::edge::BasicEdge;
+    use super::*;
+
+    #[test]
+    fn test_mirror() {
+        let g: UndirectedGraph<u64,BasicEdge<u64>> = std::fs::read_to_string("data/small_graphs/small1/small1.in")
+            .unwrap()
+            .parse()
+            .unwrap();
+
+        println!("{:?}", g);
+        println!("{:?}", create_mirror_graph(&g, 0, 4));
+    }
 }

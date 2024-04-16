@@ -1,38 +1,39 @@
 use std::cmp::Ordering;
 use std::cmp::Ordering::{Equal};
 use crate::structure::weight::Weight;
+use Todo::*;
+use crate::structure::graph::edge::Edge;
 
 #[derive(Debug, Clone)]
-pub enum Todo<W: Weight> {
+pub enum Todo<W: Weight, E: Edge<W>> {
     Vertex(W, usize),
-    Blossom(W, usize, usize),
+    Blossom(W, E),
 }
-use Todo::*;
 
-impl <W: Weight> PartialOrd for Todo<W> {
+impl <W: Weight, E: Edge<W>> PartialOrd for Todo<W,E> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
             (Vertex(w1, _),Vertex(w2, _)) => w1.partial_cmp(w2),
-            (Vertex(w1,_),Blossom(w2,_,_)) => (*w1+*w1).partial_cmp(w2),
-            (Blossom(w1,_,_),Vertex(w2,_)) => (*w1).partial_cmp(&(*w2+*w2)),
-            (Blossom(w1,_,_),Blossom(w2,_,_)) => w1.partial_cmp(w2),
+            (Vertex(w1,_),Blossom(w2,_)) => (*w1+*w1).partial_cmp(w2),
+            (Blossom(w1,_),Vertex(w2,_)) => (*w1).partial_cmp(&(*w2+*w2)),
+            (Blossom(w1,_),Blossom(w2,_)) => w1.partial_cmp(w2),
         }
     }
 }
 
-impl<W: Weight> Eq for Todo<W> {}
+impl<W: Weight, E: Edge<W>> Eq for Todo<W,E> {}
 
-impl<W: Weight> PartialEq<Self> for Todo<W> {
+impl<W: Weight, E: Edge<W>> PartialEq<Self> for Todo<W,E> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Vertex(w1,u), Vertex(w2,v)) => w1 == w2 && u == v,
-            (Blossom(w1, u, v), Blossom(w2, a, b)) => w1 == w2 && ((u == a && v == b) || (u == b && v == a)),
+            (Blossom(w1, e1), Blossom(w2, e2)) => w1 == w2 && (e1 == e2 || e1 == &e2.reverse()),
             _ => false,
         }
     }
 }
 
-impl <W: Weight> Ord for Todo<W> {
+impl <W: Weight, E: Edge<W>> Ord for Todo<W,E> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap_or(Equal)
     }

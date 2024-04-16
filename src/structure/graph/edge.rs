@@ -2,11 +2,12 @@ use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use crate::structure::weight::{Weight, Weighted};
 
-pub trait Edge<W: Weight>: Weighted<W> + FromStr + Debug + Clone {
+pub trait Edge<W: Weight>: Weighted<W> + FromStr + Debug + Clone + PartialEq + Eq {
     fn from(&self) -> usize;
     fn to(&self) -> usize;
     fn reverse(&self) -> Self;
     fn subdivide(&self, middle: usize) -> (Self, Self);
+    fn shift_by(&self, offset: i64) -> Self;
 }
 
 #[derive(PartialEq, Clone)]
@@ -26,6 +27,8 @@ impl <W: Weight> BasicEdge<W> {
     }
 }
 
+impl <W: Weight> Eq for BasicEdge<W> {}
+
 impl <W: Weight> Edge<W> for BasicEdge<W> {
     fn from(&self) -> usize { self.from }
     fn to(&self) -> usize { self.to }
@@ -33,6 +36,13 @@ impl <W: Weight> Edge<W> for BasicEdge<W> {
         BasicEdge {
             from: self.to,
             to: self.from,
+            weight: self.weight,
+        }
+    }
+    fn shift_by(&self, offset: i64) -> Self {
+        BasicEdge {
+            from: (self.from as i64 + offset) as usize,
+            to: (self.to as i64 + offset) as usize,
             weight: self.weight,
         }
     }

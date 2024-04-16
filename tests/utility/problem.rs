@@ -12,6 +12,7 @@ use shortest_odd_path::structure::path_result::{PathResult, PathResult::*};
 use shortest_odd_path::structure::graph::planar::planar_graph::PlanarGraph;
 use shortest_odd_path::structure::graph::undirected_graph::UndirectedGraph;
 use shortest_odd_path::structure::weight::Weight;
+use shortest_odd_path::utility::misc::debug;
 
 pub trait Problem<W>
     where W: Weight,
@@ -90,7 +91,7 @@ impl <W> Problem<W> for ShortestOddPath
             (Infinite, Possible {cost: _, path}) => panic!("{}\nExpected to not find any {}-{}-path, but found one anyway: {:?}", context, 0, sink, path),
             (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-path of cost {}, but it did not", context, 0, sink, cost),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
-                println!("Path: {:?}", path);
+                debug(format!("Path: {:?}", path));
                 assert_eq!(path.len() % 2, 1);
                 verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
                 for i in 0..path.len()-1 {

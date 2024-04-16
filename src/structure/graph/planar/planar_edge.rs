@@ -58,12 +58,23 @@ impl <W: Weight> Edge<W> for PlanarEdgeImpl<W> {
             }
         )
     }
+    fn shift_by(&self, offset: i64) -> Self {
+        PlanarEdgeImpl {
+            from: (self.from as i64 + offset) as usize,
+            to: (self.to as i64 + offset) as usize,
+            weight: self.weight,
+            left: self.left,
+            right: self.right,
+        }
+    }
 }
 
 impl <W: Weight> PlanarEdge<W> for PlanarEdgeImpl<W> {
     fn left(&self) -> usize { self.left }
     fn right(&self) -> usize { self.right }
 }
+
+impl <W: Weight> Eq for PlanarEdgeImpl<W> {}
 
 impl <W: Weight> FromStr for PlanarEdgeImpl<W> {
     type Err = String;

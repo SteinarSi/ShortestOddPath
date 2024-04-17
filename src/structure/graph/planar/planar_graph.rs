@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
-use crate::structure::graph::edge::{BasicEdge, Edge};
+use crate::structure::graph::edge::{Edge};
 use crate::structure::graph::graph::Graph;
 use crate::structure::graph::planar::planar_edge::{PlanarEdgeImpl};
 use crate::structure::graph::planar::point::Point;
@@ -12,12 +12,12 @@ pub struct PlanarGraph<W: Weight> {
     points: Vec<Point>,
     lines: Vec<PlanarEdgeImpl<W>>,
     adj_list: Vec<Vec<usize>>,
-    dual: UndirectedGraph<W, BasicEdge<W>>, // TODO egen type for dual-kanter?
+    dual: UndirectedGraph<W, PlanarEdgeImpl<W>>,
     m: usize,
 }
 
 impl <'a, W: Weight> PlanarGraph<W> {
-    pub fn new(points: Vec<Point>, lines: Vec<PlanarEdgeImpl<W>>, adj_list: Vec<Vec<usize>>, dual: UndirectedGraph<W,BasicEdge<W>>, m: usize) -> Self {
+    pub fn new(points: Vec<Point>, lines: Vec<PlanarEdgeImpl<W>>, adj_list: Vec<Vec<usize>>, dual: UndirectedGraph<W,PlanarEdgeImpl<W>>, m: usize) -> Self {
         PlanarGraph {
             points,
             lines,
@@ -32,7 +32,7 @@ impl <'a, W: Weight> PlanarGraph<W> {
     pub fn points(&self, u: usize) -> &Point {
         &self.points[u]
     }
-    pub fn dual(&self) -> &UndirectedGraph<W,BasicEdge<W>> {
+    pub fn dual(&self) -> &UndirectedGraph<W,PlanarEdgeImpl<W>> {
         &self.dual
     }
     #[allow(non_snake_case)]

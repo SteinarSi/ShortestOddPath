@@ -4,13 +4,13 @@ use crate::structure::graph::graph::Graph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::{Weight};
 
-pub fn split_edges<W, I, E>(g: &UndirectedGraph<W,E>, f: I) -> (UndirectedGraph<W,E>, impl Fn(&E) -> Option<E>)
+pub fn split_edges<W, E>(g: &UndirectedGraph<W,E>, f: Vec<E>) -> (UndirectedGraph<W,E>, impl Fn(&E) -> Option<E>)
     where W: Weight,
-          I: IntoIterator<Item = (usize,usize)>,
           E: Edge<W>,
 {
     // Make sure that all the banned edges are ordered, so we can check other edges quicker
-    let bans: BTreeSet<(usize,usize)> = f.into_iter().map(|(u,v)| if v < u {(v,u)} else {(u,v)} ).collect();
+    // let bans: BTreeSet<(usize,usize)> = f.into_iter().map(|(u,v)| if v < u {(v,u)} else {(u,v)} ).collect();
+    let bans: BTreeSet<E> = f.into_iter().map(|e| if e.from() < e.to() { e } else { e.reverse() } ).collect();
     let extra = g.m() - bans.len();
     let old_n = g.n();
     let new_n = g.n() + extra;
@@ -19,8 +19,8 @@ pub fn split_edges<W, I, E>(g: &UndirectedGraph<W,E>, f: I) -> (UndirectedGraph<
     let mut split = UndirectedGraph::new(new_n);
 
     for u in g.vertices() {
-        for e in g[&u].iter().filter(|&e| u < e.to()) {
-            if bans.contains(&(u,e.to())) {
+        for e in g[&u].iter().filter(|&e| e.from() < e.to()) {
+            if bans.contains(e) {
                 split.add_edge(e.clone());
             }
             else {
@@ -70,8 +70,11 @@ pub fn create_mirror_graph<W: Weight,E: Edge<W>>(graph: &UndirectedGraph<W,E>, s
 }
 
 #[cfg(test)]
-mod test_mirror {
+mod test_utility {
+    use crate::algorithm::utility::split_edges;
     use crate::structure::graph::edge::BasicEdge;
+    use crate::structure::graph::graph::Graph;
+    use crate::structure::graph::undirected_graph::UndirectedGraph;
     use super::*;
 
     #[test]
@@ -83,5 +86,26 @@ mod test_mirror {
 
         println!("{:?}", g);
         println!("{:?}", create_mirror_graph(&g, 0, 4));
+    }
+
+    #[test]
+    fn test_split() {
+        let g: UndirectedGraph<u64,BasicEdge<u64>> = std::fs::read_to_string("data/small_graphs/small1/small1.in")
+            .unwrap()
+            .parse()
+            .unwrap();
+        let bans = vec![BasicEdge::new(0, 3, 4), BasicEdge::new(1, 2, 2)];
+        let b = bans.len();
+        let (split, _) = split_edges(&g, bans);
+
+        assert!(split.is_adjacent(0, 3));
+        assert!(split.is_adjacent(1, 2));
+
+        assert!( ! split.is_adjacent(0, 1));
+        assert!( ! split.is_adjacent(2, 3));
+        assert!( ! split.is_adjacent(3, 4));
+        assert!( ! split.is_adjacent(2, 4));
+
+        assert_eq!(split.n(), g.n() + g.m() - b);
     }
 }

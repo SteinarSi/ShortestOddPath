@@ -11,8 +11,9 @@ In: an undirected graph G, two vertices s,t in V(G), and a 'bottleneck' edge (u,
 Out: the shortest s-t-path in G that passes through (u,v), if one exists
 */
 
-pub fn shortest_bottleneck_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize, bottleneck: (usize,usize)) -> PathResult<W,E> {
-    let (split, map) = split_edges(&graph, vec![bottleneck]);
+pub fn shortest_bottleneck_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize, (bottle_from, bottle_to): (usize,usize)) -> PathResult<W,E> {
+    let bottleneck = graph[&bottle_from].iter().filter(|e| e.to() == bottle_to).map(|e| e.clone()).collect();
+    let (split, map) = split_edges(&graph, bottleneck);
     match shortest_odd_path(&split, s, t) {
         Impossible => Impossible,
         Possible {cost: _, path} => {

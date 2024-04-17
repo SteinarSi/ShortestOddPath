@@ -4,8 +4,9 @@ use crate::structure::cost::{Cost::*, Cost};
 use crate::structure::graph::graph::Graph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
-use std::collections::{BinaryHeap, BTreeSet};
+use std::collections::{BinaryHeap};
 use crate::algorithm::utility;
+use crate::structure::graph::base::Base;
 use crate::structure::graph::edge::{Edge};
 use crate::structure::todo::{Todo, Todo::*};
 use crate::structure::weight::{Weight};
@@ -15,9 +16,7 @@ pub struct DerigsAlgorithm<W: Weight, E: Edge<W>> {
     d_plus: Vec<Cost<W>>,
     d_minus: Vec<Cost<W>>,
     pred: Vec<Option<E>>,
-    basis: Vec<usize>,
-    // TODO own struct for bases
-    // bases: BTreeMap<usize, Vec<usize>>,
+    basis: Base,
     s: usize,
     t: usize,
     orig_n: usize,
@@ -63,9 +62,7 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
             d_plus,
             d_minus,
             pred,
-            basis: (0..n).collect(),
-            // TODO own struct for bases
-            // bases: BTreeMap::new(),
+            basis: Base::new(n),
             s,
             t,
             orig_n: graph.n(),
@@ -103,7 +100,6 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
             else {
                 path.push(curr.shift_by(-(self.orig_n as i64)))
             }
-            // path.push(BasicEdge::new(self.to_real_vertex(curr.from()), self.to_real_vertex(curr.to()), curr.weight()));
         }
         path.reverse();
         debug(format!("Path of cost {} is possible: {:?\n\n}",cost, path));
@@ -119,7 +115,7 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
         while let Some(Reverse(todo)) = self.pq.peek() {
             match todo {
                 Vertex(_,u) => if self.completed[*u] { self.pq.pop(); } else { break; }
-                Blossom(_,e) => if self.basis[e.from()] == self.basis[e.to()] { self.pq.pop(); } else { break; }
+                Blossom(_,e) => if self.basis.same_base(e.from(), e.to()) { self.pq.pop(); } else { break; }
             }
         }
 
@@ -155,9 +151,8 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
                 self.pq.push(Reverse(Vertex(new_dist_v, v)));
             }
 
-            else if let (Finite(dist_v), true) = (self.d_plus[v], self.basis[u] != self.basis[v]) {
+            else if let (Finite(dist_v), true) = (self.d_plus[v], ! self.basis.same_base(u, v)) {
                 debug(format!("        Found candidate for blossom: ({}, {}), with delta = {}", u, v, dist_u + dist_v + w));
-                debug(format!("        Basises: {} != {}, and {} != {}", self.basis[u], self.basis[v], self.basis[self.mirror(u)], self.basis[v]));
                 self.pq.push(Reverse(Blossom(dist_v + dist_v + w, e.clone())));
                 if Finite(new_dist_v) < self.d_minus[v] {
                     debug(format!("        d_minus[{}] = {}", v, new_dist_v));
@@ -202,11 +197,6 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
         for v in s2 {
             self.scan(v);
         }
-        // self.set_bases(b, &p1);
-        // self.set_bases(b, &p2);
-        //
-        // self.set_cycle_path_values(&p1);
-        // self.set_cycle_path_values(&p2);
     }
 
     fn backtrack__blossom(&mut self, e: &E) -> (usize, Vec<E>, Vec<E>) {
@@ -268,6 +258,7 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
                     p2.pop();
                     self.in_current_cycle[v] = false;
                     while let Some(e) = p1.last() {
+                        // let uu = self.basis[e.from()];
                         let uu = self.basis[e.from()];
                         self.in_current_cycle[uu] = false;
                         debug(format!("        popping {:?}", e));
@@ -285,23 +276,12 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
         }
     }
 
-    // TODO make own struct for bookeeping of bases
     fn set_edge_bases(&mut self, b: usize, path: &Vec<E>) {
-        let mut ex = BTreeSet::new();
         for e in path {
-            if self.basis[e.from()] != b {
-                ex.insert(self.basis[e.from()]);
-            }
-            if self.basis[self.mirror(e.from())] != b {
-                ex.insert(self.basis[self.mirror(e.from())]);
-            }
-        }
-        for u in ex {
-            for v in self.graph.vertices() {
-                if self.basis[v] == u {
-                    self.basis[v] = b;
-                }
-            }
+            let u = e.from();
+            let m = self.mirror(u);
+            self.basis[u] = b;
+            self.basis[m] = b;
         }
     }
 

@@ -1,8 +1,10 @@
+use std::cmp::Ordering;
+use std::cmp::Ordering::Equal;
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use crate::structure::weight::{Weight, Weighted};
 
-pub trait Edge<W: Weight>: Weighted<W> + FromStr + Debug + Clone + PartialEq + Eq {
+pub trait Edge<W: Weight>: Weighted<W> + FromStr + Debug + Clone + PartialEq + Eq + PartialOrd + Ord {
     fn from(&self) -> usize;
     fn to(&self) -> usize;
     fn reverse(&self) -> Self;
@@ -29,6 +31,18 @@ impl <W: Weight> BasicEdge<W> {
 
 impl <W: Weight> Eq for BasicEdge<W> {}
 
+impl<W: Weight> PartialOrd for BasicEdge<W> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        (self.from, self.to, self.weight).partial_cmp(&(other.from, other.to, other.weight))
+    }
+}
+
+impl<W: Weight> Ord for BasicEdge<W> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Equal)
+    }
+}
+
 impl <W: Weight> Edge<W> for BasicEdge<W> {
     fn from(&self) -> usize { self.from }
     fn to(&self) -> usize { self.to }
@@ -39,14 +53,6 @@ impl <W: Weight> Edge<W> for BasicEdge<W> {
             weight: self.weight,
         }
     }
-    fn shift_by(&self, offset: i64) -> Self {
-        BasicEdge {
-            from: (self.from as i64 + offset) as usize,
-            to: (self.to as i64 + offset) as usize,
-            weight: self.weight,
-        }
-    }
-
     fn subdivide(&self, middle: usize) -> (Self, Self) {
         (
             BasicEdge {
@@ -60,6 +66,14 @@ impl <W: Weight> Edge<W> for BasicEdge<W> {
                 weight: 0.into(),
             }
         )
+    }
+
+    fn shift_by(&self, offset: i64) -> Self {
+        BasicEdge {
+            from: (self.from as i64 + offset) as usize,
+            to: (self.to as i64 + offset) as usize,
+            weight: self.weight,
+        }
     }
 }
 

@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+use std::cmp::Ordering::Equal;
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use crate::structure::graph::edge::{Edge};
@@ -6,6 +8,8 @@ use crate::structure::weight::{Weight, Weighted};
 pub trait PlanarEdge<W: Weight>: Edge<W> {
     fn left(&self) -> usize;
     fn right(&self) -> usize;
+    fn rotate_right(&self) -> Self;
+
 }
 
 #[derive(PartialEq, Clone)]
@@ -24,6 +28,18 @@ impl <W: Weight> Weighted<W> for PlanarEdgeImpl<W> {
 impl<W: Weight> Debug for PlanarEdgeImpl<W> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} -{}-> {}", self.from, self.weight, self.to)
+    }
+}
+
+impl<W: Weight> PartialOrd for PlanarEdgeImpl<W> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        (self.from,self.to,self.left,self.right,self.weight).partial_cmp(&(other.from,other.to,other.left,other.right,other.weight))
+    }
+}
+
+impl<W: Weight> Ord for PlanarEdgeImpl<W> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Equal)
     }
 }
 
@@ -72,6 +88,15 @@ impl <W: Weight> Edge<W> for PlanarEdgeImpl<W> {
 impl <W: Weight> PlanarEdge<W> for PlanarEdgeImpl<W> {
     fn left(&self) -> usize { self.left }
     fn right(&self) -> usize { self.right }
+    fn rotate_right(&self) -> Self {
+        PlanarEdgeImpl {
+            from: self.left,
+            to: self.right,
+            left: self.to,
+            right: self.from,
+            weight: self.weight,
+        }
+    }
 }
 
 impl <W: Weight> Eq for PlanarEdgeImpl<W> {}

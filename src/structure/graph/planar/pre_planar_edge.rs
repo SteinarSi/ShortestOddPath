@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+use std::cmp::Ordering::Equal;
 use std::str::FromStr;
 use crate::structure::graph::edge::{Edge};
 use crate::structure::graph::planar::planar_edge::PlanarEdgeImpl;
@@ -21,6 +23,18 @@ impl <W: Weight> PrePlanarEdge<W> {
             left: self.left.unwrap(),
             right: self.right.unwrap(),
         }
+    }
+}
+
+impl<W: Weight> PartialOrd<Self> for PrePlanarEdge<W> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        (self.from,self.to,self.left,self.right,self.weight).partial_cmp(&(other.from,other.to,other.left,other.right,other.weight))
+    }
+}
+
+impl<W: Weight> Ord for PrePlanarEdge<W> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Equal)
     }
 }
 

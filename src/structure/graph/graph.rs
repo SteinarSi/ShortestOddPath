@@ -13,6 +13,9 @@ pub trait Graph<'a, E, W>
     fn V(&'a self) -> impl Iterator<Item = Self::V> {
         self.vertices()
     }
+    #[allow(non_snake_case)]
+    fn N(&self, u: usize) -> Vec<E>;
     fn add_edge(&mut self, e: E);
     fn is_adjacent(&self, u: usize, v: usize) -> bool;
+    fn find_edges(&self, u: usize, v: usize) -> Vec<E>;
 }

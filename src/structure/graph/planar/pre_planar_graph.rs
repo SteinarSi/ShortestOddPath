@@ -35,7 +35,6 @@ impl <W: Weight> PrePlanarGraph<W> {
         self.determine_faces()?;
 
         let f = self.m() - self.n() + 2;
-        let m = self.m();
         let lines = self.edges.into_iter()
             .map(|l| l.planarize())
             .collect();
@@ -46,7 +45,6 @@ impl <W: Weight> PrePlanarGraph<W> {
             lines,
             self.adj_list,
             dual,
-            m,
         ))
     }
 
@@ -101,8 +99,6 @@ impl <W: Weight> PrePlanarGraph<W> {
         for i in (0..lines.len()).step_by(2) {
             let e = &lines[i];
             dual.add_edge(e.rotate_right());
-            // TODO egen type for dual-graf-kanter?
-            // dual.add_edge(BasicEdge::new(e.left, e.right, e.weight));
         }
         dual
     }
@@ -122,6 +118,10 @@ impl <'a, W: Weight> Graph<'a, PrePlanarEdge<W>, W> for PrePlanarGraph<W> {
         self.points.clone().into_iter()
     }
 
+    fn N(&self, u: usize) -> Vec<PrePlanarEdge<W>> {
+        self.adj_list[u].iter().map(|i| self.edges[*i].clone()).collect()
+    }
+
     fn add_edge(&mut self, e: PrePlanarEdge<W>) {
         let b = e.reverse();
         self.adj_list[e.from].push(self.edges.len());
@@ -132,6 +132,10 @@ impl <'a, W: Weight> Graph<'a, PrePlanarEdge<W>, W> for PrePlanarGraph<W> {
     }
     fn is_adjacent(&self, u: usize, v: usize) -> bool {
         self.adj_list[u].iter().find(|e|self.edges[**e].to == v).is_some()
+    }
+
+    fn find_edges(&self, u: usize, v: usize) -> Vec<PrePlanarEdge<W>> {
+        self.adj_list[u].iter().map(|i| self.edges[*i].clone()).filter(|e| e.to() == v).collect()
     }
 }
 

@@ -30,14 +30,18 @@ pub fn all_shortest_paths<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s
     dist
 }
 
-pub fn bfs<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize) -> Vec<Cost<u64>> {
+pub fn bfs<'a,W,E,G>(graph: &'a G, s: usize) -> Vec<Cost<u64>>
+    where W: Weight,
+          E: Edge<W>,
+          G: Graph<'a,E,W>,
+{
     let mut dist = repeat(graph.n(), Infinite);
     let mut q: Queue<(usize, u64)> = Queue::new();
     q.add((s, 0)).unwrap();
     dist[s] = Finite(0);
 
     while let Ok((u,d)) = q.remove() {
-        for e in &graph[&u] {
+        for e in graph.N(u) {
             let v = e.to();
             if dist[v].is_infinite() {
                 dist[v] = Finite(d + 1);

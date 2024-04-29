@@ -25,15 +25,6 @@ impl <W: Weight, E: Edge<W>> UndirectedGraph<W,E> {
             _marker: PhantomData::default(),
         }
     }
-
-    pub fn remove_edge(&mut self, (u,v): &(usize,usize)) {
-        let len = self.adj_list[*u].len();
-        self.adj_list[*u].retain(|e| e.to() != *v);
-        self.adj_list[*v].retain(|e| e.to() != *u);
-        if len != self.adj_list[*u].len() {
-            self.m = self.m - 1;
-        }
-    }
     pub(crate) unsafe fn add_directed_edge(&mut self, e: E) {
         self.adj_list[e.from()].push(e);
         self.m = self.m + 1;
@@ -45,6 +36,11 @@ impl <'a, W: Weight, E: Edge<W>> Graph<'a, E, W> for UndirectedGraph<W,E> {
     fn n(&self) -> usize { self.n }
     fn m(&self) -> usize { self.m }
     fn vertices(&'a self) -> impl Iterator<Item = usize> { 0..self.n }
+
+    fn N(&self, u: usize) -> Vec<E> {
+        self.index(&u).clone()
+    }
+
     fn add_edge(&mut self, e: E) {
         let c = e.reverse();
         self.adj_list[e.from()].push(e);
@@ -53,6 +49,10 @@ impl <'a, W: Weight, E: Edge<W>> Graph<'a, E, W> for UndirectedGraph<W,E> {
     }
     fn is_adjacent(&self, u: usize, v: usize) -> bool {
         self.adj_list[u].iter().find(|e| e.to() == v).is_some()
+    }
+
+    fn find_edges(&self, u: usize, v: usize) -> Vec<E> {
+        self.adj_list[u].clone().into_iter().filter(|e| e.to() == v).collect()
     }
 }
 

@@ -27,8 +27,8 @@ pub fn network_diversion<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, 
         Possible {cost, path} => {
             let mapped: Vec<PlanarEdgeImpl<W>> = path.iter().flat_map(|e| map(e)).collect();
             let rotated: Vec<PlanarEdgeImpl<W>> = mapped.iter().map(|e| e.rotate_right()).collect();
-            debug(format!("Dual diversion set: {:?}", mapped));
-            debug(format!("Real diversion set: {:?}", rotated));
+            debug(format!("\nDual diversion set: {:?}", mapped));
+            debug(format!("Real diversion set: {:?}\n", rotated));
 
             (
                 cost,

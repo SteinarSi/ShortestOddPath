@@ -4,6 +4,7 @@ use shortest_odd_path::algorithm::bottleneck_path::shortest_bottleneck_path;
 use shortest_odd_path::algorithm::network_diversion::network_diversion;
 use shortest_odd_path::algorithm::odd_path::shortest_odd_path;
 use shortest_odd_path::algorithm::odd_walk::shortest_odd_walk;
+use shortest_odd_path::algorithm::shortest_path::bfs;
 use shortest_odd_path::algorithm::two_disjoint_paths::two_disjoint_paths;
 use shortest_odd_path::structure::cost::{Cost, Finite, Infinite};
 use shortest_odd_path::structure::graph::edge::{BasicEdge, Edge};
@@ -213,10 +214,14 @@ impl <W> Problem<W> for NetworkDiversion
         format!("Network Diversion from {} to {}, every path must go through ({},{})", s,t,u,v)
     }
 
-    fn verify_answer(_graph: &Self::GraphClass, &(_,_,_,expected): &Self::Query, actual: &Self::Output) {
-        println!("The answer is {:?}", actual);
-        assert_eq!(expected, actual.0);
-        // TODO actual tests
+    fn verify_answer(graph: &Self::GraphClass, &(s,t,(du,dv),expected): &Self::Query, (cost, diversion): &Self::Output) {
+        assert_eq!(expected, *cost);
+        let mut bottleneck = graph.find_edges(du, dv);
+        let dist_before = bfs(&graph.delete_edges(diversion), s);
+        assert!(dist_before[t].is_finite());
+        bottleneck.extend(diversion.clone());
+        let dist_after = bfs(&graph.delete_edges(&bottleneck), s);
+        assert!(dist_after[t].is_infinite());
     }
 
     fn compute(graph: &Self::GraphClass, &(s,t,(u,v),_): &Self::Query) -> Self::Output {

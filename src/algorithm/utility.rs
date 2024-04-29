@@ -71,10 +71,7 @@ pub fn create_mirror_graph<W: Weight,E: Edge<W>>(graph: &UndirectedGraph<W,E>, s
 
 #[cfg(test)]
 mod test_utility {
-    use crate::algorithm::utility::split_edges;
     use crate::structure::graph::edge::BasicEdge;
-    use crate::structure::graph::graph::Graph;
-    use crate::structure::graph::undirected_graph::UndirectedGraph;
     use super::*;
 
     #[test]

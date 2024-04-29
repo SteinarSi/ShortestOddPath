@@ -176,7 +176,7 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
         let k = e.to();
         debug(format!("Blossom(l = {}, k = {}, delta = {}):", l, k, delta));
 
-        let (b, p1, p2) = self.backtrack__blossom(e);
+        let (b, p1, p2) = self.backtrack_blossom(e);
         debug(format!("    b: {}", b));
         debug(format!("    p1: {:?}", p1));
         debug(format!("    p2: {:?}", p2));
@@ -199,7 +199,7 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
         }
     }
 
-    fn backtrack__blossom(&mut self, e: &E) -> (usize, Vec<E>, Vec<E>) {
+    fn backtrack_blossom(&mut self, e: &E) -> (usize, Vec<E>, Vec<E>) {
         let mut p1: Vec<E> = vec![e.reverse()];
         let mut p2: Vec<E> = vec![e.clone()];
 

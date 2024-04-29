@@ -1,9 +1,8 @@
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
+use shortest_odd_path::structure::graph::edge::Edge;
+use shortest_odd_path::structure::graph::graph::Graph;
 use shortest_odd_path::structure::weight::Weight;
-use crate::utility::problem::Problem;
-
-pub mod problem;
 
 pub fn meta_test<Pr, W: Weight>(folder: &str, name: &str)
     where Pr: Problem<W>,
@@ -27,4 +26,33 @@ pub fn meta_test<Pr, W: Weight>(folder: &str, name: &str)
         Pr::verify_answer(&graph, &query, &Pr::compute(&graph, &query));
     }
     println!("Success :-)")
+}
+
+pub trait Problem<W>
+    where W: Weight,
+          <W as FromStr>::Err: Debug + Display,
+{
+    type Output;
+    type Query;
+    type GraphClass;
+    fn name() -> String;
+    fn parse_query(query: &str) -> Option<Self::Query>;
+    fn display_query(query: &Self::Query) -> String;
+    fn verify_answer(graph: &Self::GraphClass, expected: &Self::Query, actual: &Self::Output);
+    fn compute(graph: &Self::GraphClass, query: &Self::Query) -> Self::Output;
+}
+
+pub fn verify_path<'a, W, E, G, Pr>(graph: &G, context: &String, expected_cost: W, actual_cost: W, path: &Vec<E>, source: usize, sink: usize)
+    where W: Weight,
+          <W as FromStr>::Err: Debug + Display,
+          E: Edge<W>,
+          G: Graph<'a, E, W>,
+          Pr: Problem<W>,
+{
+    assert_eq!(expected_cost, actual_cost, "{}\nThe costs don't match: expected {}, but got {}.\nThe offending path: {:?}", context, expected_cost, actual_cost, path);
+    assert_eq!(source, path[0].from(), "{}\nThe path starts at the wrong vertex! Expected {}, but yet it starts at {} for some reason", context, source, path[0].from());
+    assert_eq!(sink, path[path.len()-1].to(), "{}\nThe path ends at the wrong vertex! Expected {}, but it ends at {} for some strange reason that you should consider debugging.", context, sink, path[path.len()-1].to());
+    for e in path {
+        assert!(graph.is_adjacent(e.from(), e.to()), "{}\nOur path includes an edge from {} to {} that doesn't exist in the graph!", context, e.from(), e.to())
+    }
 }

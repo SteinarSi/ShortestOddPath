@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use crate::structure::graph::edge::Edge;
 use crate::structure::graph::graph::Graph;
-use crate::structure::graph::planar::planar_edge::PlanarEdgeImpl;
+use crate::structure::graph::planar::planar_edge::PlanarEdge;
 use crate::structure::graph::planar::point::Point;
 use crate::structure::graph::planar::pre_planar_graph::PrePlanarGraph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
@@ -13,13 +13,13 @@ use crate::structure::weight::Weight;
 #[derive(Clone)]
 pub struct PlanarGraph<W: Weight> {
     points: Vec<Point>,
-    lines: Vec<PlanarEdgeImpl<W>>,
+    lines: Vec<PlanarEdge<W>>,
     adj_list: Vec<Vec<usize>>,
-    dual: UndirectedGraph<W, PlanarEdgeImpl<W>>,
+    dual: UndirectedGraph<W, PlanarEdge<W>>,
 }
 
 impl <'a, W: Weight> PlanarGraph<W> {
-    pub fn new(points: Vec<Point>, lines: Vec<PlanarEdgeImpl<W>>, adj_list: Vec<Vec<usize>>, dual: UndirectedGraph<W,PlanarEdgeImpl<W>>) -> Self {
+    pub fn new(points: Vec<Point>, lines: Vec<PlanarEdge<W>>, adj_list: Vec<Vec<usize>>, dual: UndirectedGraph<W,PlanarEdge<W>>) -> Self {
         PlanarGraph {
             points,
             lines,
@@ -33,17 +33,17 @@ impl <'a, W: Weight> PlanarGraph<W> {
     pub fn points(&self, u: usize) -> &Point {
         &self.points[u]
     }
-    pub fn dual(&self) -> &UndirectedGraph<W,PlanarEdgeImpl<W>> {
+    pub fn dual(&self) -> &UndirectedGraph<W,PlanarEdge<W>> {
         &self.dual
     }
     #[allow(non_snake_case)]
-    pub fn N(&self, u: usize) -> Vec<PlanarEdgeImpl<W>> {
+    pub fn N(&self, u: usize) -> Vec<PlanarEdge<W>> {
         self.adj_list[u]
             .iter()
             .map(|v| self.lines[*v].clone())
             .collect()
     }
-    pub fn delete_edges(&self, r: &Vec<PlanarEdgeImpl<W>>) -> UndirectedGraph<W,PlanarEdgeImpl<W>> {
+    pub fn delete_edges(&self, r: &Vec<PlanarEdge<W>>) -> UndirectedGraph<W,PlanarEdge<W>> {
         let mut x = BTreeSet::new();
         for e in r {
             x.insert(e.clone());
@@ -58,18 +58,18 @@ impl <'a, W: Weight> PlanarGraph<W> {
     }
 }
 
-impl <'a, W: Weight> Graph<'a, PlanarEdgeImpl<W>, W> for PlanarGraph<W> {
+impl <'a, W: Weight> Graph<'a, PlanarEdge<W>, W> for PlanarGraph<W> {
     type V = Point;
     fn n(&self) -> usize { self.points.len() }
     fn m(&self) -> usize { self.lines.len() / 2 }
     fn vertices(&'a self) -> impl Iterator<Item = Point> {
         self.points.clone().into_iter()
     }
-    fn N(&self, u: usize) -> Vec<PlanarEdgeImpl<W>> {
+    fn N(&self, u: usize) -> Vec<PlanarEdge<W>> {
         self.adj_list[u].iter().map(|i| self.lines[*i].clone()).collect()
     }
 
-    fn add_edge(&mut self, e: PlanarEdgeImpl<W>) {
+    fn add_edge(&mut self, e: PlanarEdge<W>) {
         let b = e.reverse();
         self.adj_list[e.from].push(self.lines.len());
         self.lines.push(e);
@@ -81,7 +81,7 @@ impl <'a, W: Weight> Graph<'a, PlanarEdgeImpl<W>, W> for PlanarGraph<W> {
         self.adj_list[u].iter().find(|e|self.lines[**e].to == v).is_some()
     }
 
-    fn find_edges(&self, u: usize, v: usize) -> Vec<PlanarEdgeImpl<W>> {
+    fn find_edges(&self, u: usize, v: usize) -> Vec<PlanarEdge<W>> {
         self.adj_list[u].iter().map(|i| self.lines[*i].clone()).filter(|e| e.to() == v).collect()
     }
 }

@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
 use std::str::FromStr;
 use crate::structure::graph::edge::{Edge};
-use crate::structure::graph::planar::planar_edge::PlanarEdgeImpl;
+use crate::structure::graph::planar::planar_edge::PlanarEdge;
 use crate::structure::weight::{Weight, Weighted};
 
 #[derive(PartialEq, Clone, Debug)]
@@ -15,8 +15,8 @@ pub struct PrePlanarEdge<W: Weight> {
 }
 
 impl <W: Weight> PrePlanarEdge<W> {
-    pub fn planarize(self) -> PlanarEdgeImpl<W> {
-        PlanarEdgeImpl {
+    pub fn planarize(self) -> PlanarEdge<W> {
+        PlanarEdge {
             from: self.from,
             to: self.to,
             weight: self.weight,

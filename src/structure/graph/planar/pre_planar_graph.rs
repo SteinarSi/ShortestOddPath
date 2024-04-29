@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use crate::structure::graph::edge::{Edge};
 use crate::structure::graph::graph::Graph;
-use crate::structure::graph::planar::planar_edge::{PlanarEdge, PlanarEdgeImpl};
+use crate::structure::graph::planar::planar_edge::{PlanarEdge};
 use crate::structure::graph::planar::planar_graph::PlanarGraph;
 use crate::structure::graph::planar::point::{compare_edges_clockwise, Point};
 use crate::structure::graph::planar::pre_planar_edge::PrePlanarEdge;
@@ -94,7 +94,7 @@ impl <W: Weight> PrePlanarGraph<W> {
         Ok(())
     }
 
-    fn construct_dual(f: usize, lines: &Vec<PlanarEdgeImpl<W>>) -> UndirectedGraph<W,PlanarEdgeImpl<W>> {
+    fn construct_dual(f: usize, lines: &Vec<PlanarEdge<W>>) -> UndirectedGraph<W,PlanarEdge<W>> {
         let mut dual = UndirectedGraph::new(f);
         for i in (0..lines.len()).step_by(2) {
             let e = &lines[i];

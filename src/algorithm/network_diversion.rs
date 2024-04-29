@@ -3,13 +3,13 @@ use crate::algorithm::odd_path::shortest_odd_path;
 use crate::algorithm::utility::split_edges;
 use crate::structure::graph::graph::Graph;
 use crate::structure::path_result::{PathResult::*};
-use crate::structure::graph::planar::planar_edge::{PlanarEdge, PlanarEdgeImpl};
+use crate::structure::graph::planar::planar_edge::PlanarEdge;
 use crate::structure::graph::planar::planar_graph::PlanarGraph;
 use crate::structure::weight::Weight;
 use crate::utility::misc::{debug, repeat};
 
-pub fn network_diversion<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du, dv): (usize,usize)) -> (W, Vec<PlanarEdgeImpl<W>>) {
-    let path: Vec<PlanarEdgeImpl<W>> = bfs(graph, s, t, (du, dv))
+pub fn network_diversion<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du, dv): (usize,usize)) -> (W, Vec<PlanarEdge<W>>) {
+    let path: Vec<PlanarEdge<W>> = bfs(graph, s, t, (du, dv))
         .expect("Could not find an s-t-path at all, the graph isn't connected")
         .iter()
         .map(|e| e.rotate_right())
@@ -25,8 +25,8 @@ pub fn network_diversion<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, 
             panic!("Uhhhhh there really should be an odd path here, but we couldn't find it");
         }
         Possible {cost, path} => {
-            let mapped: Vec<PlanarEdgeImpl<W>> = path.iter().flat_map(|e| map(e)).collect();
-            let rotated: Vec<PlanarEdgeImpl<W>> = mapped.iter().map(|e| e.rotate_right()).collect();
+            let mapped: Vec<PlanarEdge<W>> = path.iter().flat_map(|e| map(e)).collect();
+            let rotated: Vec<PlanarEdge<W>> = mapped.iter().map(|e| e.rotate_right()).collect();
             debug(format!("\nDual diversion set: {:?}", mapped));
             debug(format!("Real diversion set: {:?}\n", rotated));
 
@@ -38,9 +38,9 @@ pub fn network_diversion<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, 
     }
 }
 
-fn bfs<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du,dv): (usize, usize)) -> Option<Vec<PlanarEdgeImpl<W>>> {
+fn bfs<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du,dv): (usize, usize)) -> Option<Vec<PlanarEdge<W>>> {
     let mut seen = repeat(graph.n(), false);
-    let mut prev: Vec<Option<PlanarEdgeImpl<W>>> = repeat(graph.n(), None);
+    let mut prev: Vec<Option<PlanarEdge<W>>> = repeat(graph.n(), None);
     let mut q: Queue<usize> = Queue::new();
     seen[s] = true;
     q.add(s).ok()?;
@@ -60,7 +60,7 @@ fn bfs<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du,dv): (usize, u
     }
 
     if seen[t] {
-        let mut ret: Vec<PlanarEdgeImpl<W>> = vec![prev[t].clone().unwrap()];
+        let mut ret: Vec<PlanarEdge<W>> = vec![prev[t].clone().unwrap()];
         let mut curr = ret[0].clone();
         while curr.from != s {
             curr = prev[curr.from].clone().unwrap();

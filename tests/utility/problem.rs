@@ -9,7 +9,7 @@ use shortest_odd_path::algorithm::two_disjoint_paths::two_disjoint_paths;
 use shortest_odd_path::structure::cost::{Cost, Finite, Infinite};
 use shortest_odd_path::structure::graph::edge::{BasicEdge, Edge};
 use shortest_odd_path::structure::graph::graph::Graph;
-use shortest_odd_path::structure::graph::planar::planar_edge::PlanarEdgeImpl;
+use shortest_odd_path::structure::graph::planar::planar_edge::PlanarEdge;
 use shortest_odd_path::structure::path_result::{PathResult, PathResult::*};
 use shortest_odd_path::structure::graph::planar::planar_graph::PlanarGraph;
 use shortest_odd_path::structure::graph::undirected_graph::UndirectedGraph;
@@ -192,7 +192,7 @@ impl <W> Problem<W> for NetworkDiversion
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
 {
-    type Output = (W, Vec<PlanarEdgeImpl<W>>);
+    type Output = (W, Vec<PlanarEdge<W>>);
     type Query = (usize,usize,(usize,usize),W);
     type GraphClass = PlanarGraph<W>;
 

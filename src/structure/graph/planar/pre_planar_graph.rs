@@ -8,31 +8,37 @@ use crate::structure::graph::planar::point::{compare_edges_clockwise, Point};
 use crate::structure::graph::planar::pre_planar_edge::PrePlanarEdge;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
+use crate::utility::misc::repeat;
 
 pub struct PrePlanarGraph<W: Weight> {
-    points: Vec<Point>,
+    points: Vec<Option<Point>>,
     edges: Vec<PrePlanarEdge<W>>,
     adj_list: Vec<Vec<usize>>,
     m: usize,
 }
 
 impl <W: Weight> PrePlanarGraph<W> {
-    pub fn empty() -> Self {
+    pub fn empty(n: usize) -> Self {
         PrePlanarGraph {
-            points: Vec::new(),
+            points: repeat(n, None),
             edges: Vec::new(),
             adj_list: Vec::new(),
             m: 0,
         }
     }
     pub fn add_vertex(&mut self, u: Point) {
-        self.points.push(u);
+        let i = u.id;
+        self.points[i] = Some(u);
         self.adj_list.push(Vec::new());
     }
 
     pub fn planarize(mut self) -> Result<PlanarGraph<W>, &'static str> {
-        self.sort_edges();
-        self.determine_faces()?;
+        let mut points = Vec::new();
+        for p in &self.points {
+            points.push(p.clone().ok_or("Not all points have been defined")?);
+        }
+        self.sort_edges(&points);
+        self.determine_faces(&points)?;
 
         let f = self.m() - self.n() + 2;
         let lines = self.edges.into_iter()
@@ -41,20 +47,20 @@ impl <W: Weight> PrePlanarGraph<W> {
         let dual = Self::construct_dual(f, &lines);
 
         Ok(PlanarGraph::new(
-            self.points,
+            points,
             lines,
             self.adj_list,
             dual,
         ))
     }
 
-    fn sort_edges(&mut self) {
+    fn sort_edges(&mut self, points: &Vec<Point>) {
         for u in 0..self.n() {
-            self.adj_list[u].sort_by(compare_edges_clockwise(&self.points[u], &self.points, &self.edges));
+            self.adj_list[u].sort_by(compare_edges_clockwise(&points[u], &points, &self.edges));
         }
     }
 
-    fn determine_faces(&mut self) -> Result<(), &'static str> {
+    fn determine_faces(&mut self, points: &Vec<Point>) -> Result<(), &'static str> {
         let edges_copy = self.edges.clone();
         let mut current_face = 0;
         for start_vertex in 0..self.n() {
@@ -79,7 +85,7 @@ impl <W: Weight> PrePlanarGraph<W> {
             }
         }
 
-        for u in self.vertices() {
+        for u in points {
             for &v in &self.adj_list[u.id] {
                 let edge = &self.edges[v];
                 if edge.left.is_none() || edge.right.is_none() {
@@ -105,7 +111,7 @@ impl <W: Weight> PrePlanarGraph<W> {
 }
 
 impl <'a, W: Weight> Graph<'a, PrePlanarEdge<W>, W> for PrePlanarGraph<W> {
-    type V = Point;
+    type V = Option<Point>;
     fn n(&self) -> usize {
         self.points.len()
     }
@@ -114,7 +120,7 @@ impl <'a, W: Weight> Graph<'a, PrePlanarEdge<W>, W> for PrePlanarGraph<W> {
         self.m
     }
 
-    fn vertices(&'a self) -> impl Iterator<Item = Point> {
+    fn vertices(&'a self) -> impl Iterator<Item = Option<Point>> {
         self.points.clone().into_iter()
     }
 
@@ -165,7 +171,7 @@ impl <W: Weight> FromStr for PrePlanarGraph<W> {
         let m = row1.next()
             .ok_or("Could not find m")?
             .or(Err("Could not parse m"))?;
-        let mut graph = PrePlanarGraph::empty();
+        let mut graph = PrePlanarGraph::empty(n);
         for _ in 0..n {
             graph.add_vertex(
                 ls.next().ok_or("Expected another vertex here, but got nothing")?
@@ -187,10 +193,15 @@ impl <W: Weight> Debug for PrePlanarGraph<W> {
         let mut ret = String::new();
         ret.push_str(format!("PlanarGraph(n = {}, m = {}):\n", self.n(), self.m()).as_str());
         for u in self.vertices() {
-            ret.push_str(format!("  N({}) = {:?}\n", u.id, self.adj_list[u.id].iter().map(|p| {
-                let e = &self.edges[*p];
-                if e.from == u.id { e.to } else { e.from }
-            }).collect::<Vec<usize>>()).as_str())
+            if let Some(p) = u {
+                ret.push_str(format!("  N({}) = {:?}\n", p.id, self.adj_list[p.id].iter().map(|q| {
+                    let e = &self.edges[*q];
+                    if e.from == p.id { e.to } else { e.from }
+                }).collect::<Vec<usize>>()).as_str())
+            }
+            else {
+                ret.push_str("[Point not defined yet]")
+            }
         }
         write!(f, "{}", ret)
     }

@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 
-use crate::structure::graph::edge::Edge;
+use crate::structure::graph::edge::{Edge, map_to};
 use crate::structure::graph::graph::Graph;
 use crate::structure::graph::planar::planar_edge::PlanarEdge;
 use crate::structure::graph::planar::point::Point;
@@ -88,7 +88,7 @@ impl <W: Weight> Debug for PlanarGraph<W> {
         let mut ret = String::new();
         ret.push_str(format!("PlanarGraph(n = {}, m = {}):\n", self.n(), self.m()).as_str());
         for u in self.vertices() {
-            ret.push_str(format!("  N({}) = {:?}\n", u.id, self.adj_list[u.id].iter().map(|e| e.to()).collect::<Vec<usize>>()).as_str());
+            ret.push_str(format!("  N({}) = {:?}", u.id, map_to(&self.adj_list[u.id])).as_str());
         }
         write!(f, "{}", ret)
     }

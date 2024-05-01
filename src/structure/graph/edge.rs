@@ -12,6 +12,13 @@ pub trait Edge<W: Weight>: Weighted<W> + FromStr + Debug + Clone + PartialEq + E
     fn shift_by(&self, offset: i64) -> Self;
 }
 
+pub fn map_to<W: Weight, E: Edge<W>>(edges: &Vec<E>) -> Vec<usize> {
+    edges
+        .iter()
+        .map(Edge::to)
+        .collect()
+}
+
 #[derive(PartialEq, Clone)]
 pub struct BasicEdge<W: Weight> {
     from: usize,

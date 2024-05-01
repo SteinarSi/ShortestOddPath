@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
-use crate::structure::graph::edge::{Edge};
+use crate::structure::graph::edge::{Edge, map_to};
 use crate::structure::graph::graph::Graph;
 use crate::structure::graph::planar::planar_edge::{PlanarEdge};
 use crate::structure::graph::planar::planar_graph::PlanarGraph;
@@ -208,7 +208,7 @@ impl <W: Weight> Debug for PrePlanarGraph<W> {
         ret.push_str(format!("PlanarGraph(n = {}, m = {}):\n", self.n(), self.m()).as_str());
         for u in self.vertices() {
             if let Some(p) = u {
-                ret.push_str(format!("  N({}) = {:?}\n", p.id, self.adj_list[p.id].iter().map(|e| e.to()).collect::<Vec<usize>>()).as_str());
+                ret.push_str(format!("  N({}) = {:?}", p.id, map_to(&self.adj_list[p.id])).as_str());
             }
             else {
                 ret.push_str("[Point not defined yet]")

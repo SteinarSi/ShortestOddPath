@@ -38,3 +38,51 @@ pub fn compare_edges_clockwise<'a, W: Weight>(center: &'a Point, points: &'a Vec
 fn angle_from_center(center: &Point, other: &Point) -> f64 {
     return (Complex::new(other.x, other.y) - Complex::new(center.x, center.y)).to_polar().1.neg();
 }
+
+#[cfg(test)]
+mod test_points {
+    use crate::structure::graph::edge::map_to;
+    use super::*;
+    fn new_point(x: i32, y: i32) -> Point {
+        Point {
+            id: 0,
+            x: x.into(),
+            y: y.into(),
+        }
+    }
+    fn new_edge(u:usize, v: usize) -> PrePlanarEdge<u64> {
+        PrePlanarEdge {
+            from: u,
+            to: v,
+            weight: 0,
+            left: None,
+            right: None,
+        }
+    }
+    #[test]
+    fn test_sorting() {
+        let points = vec![
+            new_point(0, 0),
+            new_point(10, -1),
+            new_point(2, 7),
+            new_point(12, 6),
+            new_point(5, 3),
+            new_point(7, 10),
+            new_point(10, 3),
+            new_point(0, 4),
+            new_point(4, -2),
+        ];
+        let mut edges = vec![
+            new_edge(4, 3),
+            new_edge(4, 1),
+            new_edge(4, 5),
+            new_edge(4, 2),
+            new_edge(4, 0),
+            new_edge(4, 8),
+            new_edge(4, 6),
+            new_edge(4, 7),
+        ];
+        edges.sort_by(compare_edges_clockwise(&points[4], &points));
+        assert_eq!(map_to(&edges), vec![7, 2, 5, 3, 6, 1, 8, 0]);
+    }
+}

@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 
@@ -13,76 +12,67 @@ use crate::structure::weight::Weight;
 #[derive(Clone)]
 pub struct PlanarGraph<W: Weight> {
     points: Vec<Point>,
-    lines: Vec<PlanarEdge<W>>,
-    adj_list: Vec<Vec<usize>>,
+    adj_list: Vec<Vec<PlanarEdge<W>>>,
     dual: UndirectedGraph<W, PlanarEdge<W>>,
+    m: usize,
 }
 
 impl <'a, W: Weight> PlanarGraph<W> {
-    pub fn new(points: Vec<Point>, lines: Vec<PlanarEdge<W>>, adj_list: Vec<Vec<usize>>, dual: UndirectedGraph<W,PlanarEdge<W>>) -> Self {
+    pub fn new(points: Vec<Point>, adj_list: Vec<Vec<PlanarEdge<W>>>, dual: UndirectedGraph<W,PlanarEdge<W>>, m: usize) -> Self {
         PlanarGraph {
             points,
-            lines,
             adj_list,
             dual,
+            m
         }
     }
-    pub fn f(&self) -> usize {
-        self.dual.n()
-    }
-    pub fn points(&self, u: usize) -> &Point {
-        &self.points[u]
-    }
-    pub fn dual(&self) -> &UndirectedGraph<W,PlanarEdge<W>> {
-        &self.dual
-    }
+    pub fn f(&self) -> usize { self.dual.n() }
+    pub fn points(&self, u: usize) -> &Point { &self.points[u] }
+    pub fn dual(&self) -> &UndirectedGraph<W,PlanarEdge<W>> { &self.dual }
     #[allow(non_snake_case)]
-    pub fn N(&self, u: usize) -> Vec<PlanarEdge<W>> {
-        self.adj_list[u]
-            .iter()
-            .map(|v| self.lines[*v].clone())
-            .collect()
-    }
-    pub fn delete_edges(&self, r: &Vec<PlanarEdge<W>>) -> UndirectedGraph<W,PlanarEdge<W>> {
-        let mut x = BTreeSet::new();
+    pub fn N(&self, u: usize) -> &Vec<PlanarEdge<W>> { &self.adj_list[u] }
+    pub fn delete_edges(&mut self, r: &Vec<PlanarEdge<W>>) {
         for e in r {
-            x.insert(e.clone());
+            self.adj_list[e.from()].retain(|f| f != e);
         }
-        let mut ret = UndirectedGraph::new(self.n());
-        for e in &self.lines {
-            if ! x.contains(&e) && ! x.contains(&e.reverse()) {
-                ret.add_edge(e.clone());
-            }
-        }
-        ret
     }
 }
 
 impl <'a, W: Weight> Graph<'a, PlanarEdge<W>, W> for PlanarGraph<W> {
     type V = Point;
     fn n(&self) -> usize { self.points.len() }
-    fn m(&self) -> usize { self.lines.len() / 2 }
+    fn m(&self) -> usize { self.m }
     fn vertices(&'a self) -> impl Iterator<Item = Point> {
         self.points.clone().into_iter()
     }
-    fn N(&self, u: usize) -> Vec<PlanarEdge<W>> {
-        self.adj_list[u].iter().map(|i| self.lines[*i].clone()).collect()
+    #[allow(non_snake_case)]
+    fn N(&self, u: usize) -> &Vec<PlanarEdge<W>> {
+        &self.adj_list[u]
     }
 
     fn add_edge(&mut self, e: PlanarEdge<W>) {
         let b = e.reverse();
-        self.adj_list[e.from].push(self.lines.len());
-        self.lines.push(e);
-        self.adj_list[b.from].push(self.lines.len());
-        self.lines.push(b);
+        self.adj_list[e.from()].push(e);
+        self.adj_list[b.from()].push(b);
+        self.m += 1;
     }
 
     fn is_adjacent(&self, u: usize, v: usize) -> bool {
-        self.adj_list[u].iter().find(|e|self.lines[**e].to == v).is_some()
+        let (p, q) = if self.adj_list[u].len() < self.adj_list[v].len() {
+            (u, v)
+        }
+        else {
+            (v, u)
+        };
+        self.adj_list[p].iter().find(|e| e.to() == q).is_some()
     }
 
     fn find_edges(&self, u: usize, v: usize) -> Vec<PlanarEdge<W>> {
-        self.adj_list[u].iter().map(|i| self.lines[*i].clone()).filter(|e| e.to() == v).collect()
+        self.adj_list[u]
+            .clone()
+            .into_iter()
+            .filter(|e| e.to() == v)
+            .collect()
     }
 }
 
@@ -98,9 +88,7 @@ impl <W: Weight> Debug for PlanarGraph<W> {
         let mut ret = String::new();
         ret.push_str(format!("PlanarGraph(n = {}, m = {}):\n", self.n(), self.m()).as_str());
         for u in self.vertices() {
-            ret.push_str(format!("  N({}) = {:?}\n", u.id, self.adj_list[u.id].iter().map(|p| {
-                self.lines[*p].to
-            }).collect::<Vec<usize>>()).as_str())
+            ret.push_str(format!("  N({}) = {:?}\n", u.id, self.adj_list[u.id].iter().map(|e| e.to()).collect::<Vec<usize>>()).as_str());
         }
         write!(f, "{}", ret)
     }

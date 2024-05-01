@@ -41,11 +41,14 @@ impl <W> Problem<W> for NetworkDiversion
 
     fn verify_answer(graph: &Self::GraphClass, &(s,t,(du,dv),expected): &Self::Query, (cost, diversion): &Self::Output) {
         assert_eq!(expected, *cost);
-        let mut bottleneck = graph.find_edges(du, dv);
-        let dist_before = bfs(&graph.delete_edges(diversion), s);
+        let mut g = graph.clone();
+        let mut bottleneck = g.find_edges(du, dv);
+        g.delete_edges(diversion);
+        let dist_before = bfs(&g, s);
         assert!(dist_before[t].is_finite());
         bottleneck.extend(diversion.clone());
-        let dist_after = bfs(&graph.delete_edges(&bottleneck), s);
+        g.delete_edges(&bottleneck);
+        let dist_after = bfs(&g, s);
         assert!(dist_after[t].is_infinite());
     }
 

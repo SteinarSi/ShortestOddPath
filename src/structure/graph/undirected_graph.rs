@@ -36,11 +36,8 @@ impl <'a, W: Weight, E: Edge<W>> Graph<'a, E, W> for UndirectedGraph<W,E> {
     fn n(&self) -> usize { self.n }
     fn m(&self) -> usize { self.m }
     fn vertices(&'a self) -> impl Iterator<Item = usize> { 0..self.n }
-
-    fn N(&self, u: usize) -> Vec<E> {
-        self.index(&u).clone()
-    }
-
+    #[allow(non_snake_case)]
+    fn N(&self, u: usize) -> &Vec<E> { &self.index(&u) }
     fn add_edge(&mut self, e: E) {
         let c = e.reverse();
         self.adj_list[e.from()].push(e);

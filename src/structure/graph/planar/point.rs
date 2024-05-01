@@ -25,10 +25,10 @@ impl FromStr for Point {
     }
 }
 
-pub fn compare_edges_clockwise<'a, W: Weight>(center: &'a Point, points: &'a Vec<Point>, edges: &'a Vec<PrePlanarEdge<W>>) -> impl FnMut(&usize, &usize) -> Ordering + 'a {
-    |&a, &b| {
-        let fa = angle_from_center(center, &points[edges[a].to]);
-        let fb = angle_from_center(center, &points[edges[b].to]);
+pub fn compare_edges_clockwise<'a, W: Weight>(center: &'a Point, points: &'a Vec<Point>) -> impl FnMut(&PrePlanarEdge<W>, &PrePlanarEdge<W>) -> Ordering + 'a {
+    |a, b| {
+        let fa = angle_from_center(center, &points[a.to]);
+        let fb = angle_from_center(center, &points[b.to]);
         if fa < fb { Less }
         else if fa > fb { Greater }
         else { Equal }

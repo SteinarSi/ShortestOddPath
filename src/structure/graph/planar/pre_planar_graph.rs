@@ -12,8 +12,7 @@ use crate::utility::misc::repeat;
 
 pub struct PrePlanarGraph<W: Weight> {
     points: Vec<Option<Point>>,
-    edges: Vec<PrePlanarEdge<W>>,
-    adj_list: Vec<Vec<usize>>,
+    adj_list: Vec<Vec<PrePlanarEdge<W>>>,
     m: usize,
 }
 
@@ -21,8 +20,7 @@ impl <W: Weight> PrePlanarGraph<W> {
     pub fn empty(n: usize) -> Self {
         PrePlanarGraph {
             points: repeat(n, None),
-            edges: Vec::new(),
-            adj_list: Vec::new(),
+            adj_list: repeat(n, Vec::new()),
             m: 0,
         }
     }
@@ -41,40 +39,49 @@ impl <W: Weight> PrePlanarGraph<W> {
         self.determine_faces(&points)?;
 
         let f = self.m() - self.n() + 2;
-        let lines = self.edges.into_iter()
-            .map(|l| l.planarize())
+        let adj_list = self.adj_list
+            .into_iter()
+            .map(|xs| xs.into_iter().map(PrePlanarEdge::planarize).collect())
             .collect();
-        let dual = Self::construct_dual(f, &lines);
+        let dual = Self::construct_dual(f, &adj_list);
 
         Ok(PlanarGraph::new(
             points,
-            lines,
-            self.adj_list,
+            adj_list,
             dual,
+            self.m,
         ))
     }
 
     fn sort_edges(&mut self, points: &Vec<Point>) {
         for u in 0..self.n() {
-            self.adj_list[u].sort_by(compare_edges_clockwise(&points[u], &points, &self.edges));
+            self.adj_list[u].sort_by(compare_edges_clockwise(&points[u], &points));
         }
     }
 
     fn determine_faces(&mut self, points: &Vec<Point>) -> Result<(), &'static str> {
-        let edges_copy = self.edges.clone();
+        let adj_list_copy = self.adj_list.clone();
         let mut current_face = 0;
         for start_vertex in 0..self.n() {
             for mut curr_line_id in 0..self.adj_list[start_vertex].len() {
-                let mut curr_line = &edges_copy[self.adj_list[start_vertex][curr_line_id]];
-                if self.edges[self.adj_list[start_vertex][curr_line_id]].left.is_none() {
+                let mut curr_line = &adj_list_copy[start_vertex][curr_line_id];
+                // let mut curr_line = &edges_copy[self.adj_list[start_vertex][curr_line_id]];
+                // if self.edges[self.adj_list[start_vertex][curr_line_id]].left.is_none() {
+                if self.adj_list[start_vertex][curr_line_id].left.is_none() {
                     loop {
-                        self.edges[self.adj_list[curr_line.from][curr_line_id]].left = Some(current_face);
-                        let id = self.adj_list[curr_line.to]
-                            .iter().position(|&l| edges_copy[l].to == curr_line.from)
+                        self.adj_list[curr_line.from][curr_line_id].left = Some(current_face);
+                        // self.edges[self.adj_list[curr_line.from][curr_line_id]].left = Some(current_face);
+                        let id = (0..adj_list_copy[curr_line.to].len())
+                            .find(|&i| adj_list_copy[curr_line.to][i].to == curr_line.from)
                             .expect("Couldn't find the reverse edge");
-                        self.edges[self.adj_list[curr_line.to][id]].right = Some(current_face);
+                        // let id = self.adj_list[curr_line.to]
+                        //     .iter().position(|&l| edges_copy[l].to == curr_line.from)
+                        //     .expect("Couldn't find the reverse edge");
+                        self.adj_list[curr_line.to][id].right = Some(current_face);
+                        // self.edges[self.adj_list[curr_line.to][id]].right = Some(current_face);
                         curr_line_id = (id + 1) % self.adj_list[curr_line.to].len();
-                        curr_line = &edges_copy[self.adj_list[curr_line.to][curr_line_id]];
+                        curr_line = &adj_list_copy[curr_line.to][curr_line_id];
+                        // curr_line = &edges_copy[self.adj_list[curr_line.to][curr_line_id]];
 
                         if curr_line.from == start_vertex {
                             break;
@@ -86,9 +93,8 @@ impl <W: Weight> PrePlanarGraph<W> {
         }
 
         for u in points {
-            for &v in &self.adj_list[u.id] {
-                let edge = &self.edges[v];
-                if edge.left.is_none() || edge.right.is_none() {
+            for e in &self.adj_list[u.id] {
+                if e.left.is_none() || e.right.is_none() {
                     return Err("Not all edges found both a left and right region!");
                 }
             }
@@ -100,11 +106,12 @@ impl <W: Weight> PrePlanarGraph<W> {
         Ok(())
     }
 
-    fn construct_dual(f: usize, lines: &Vec<PlanarEdge<W>>) -> UndirectedGraph<W,PlanarEdge<W>> {
+    fn construct_dual(f: usize, lines: &Vec<Vec<PlanarEdge<W>>>) -> UndirectedGraph<W,PlanarEdge<W>> {
         let mut dual = UndirectedGraph::new(f);
-        for i in (0..lines.len()).step_by(2) {
-            let e = &lines[i];
-            dual.add_edge(e.rotate_right());
+        for u in 0..lines.len() {
+            for e in &lines[u] {
+                dual.add_edge(e.rotate_right());
+            }
         }
         dual
     }
@@ -124,24 +131,31 @@ impl <'a, W: Weight> Graph<'a, PrePlanarEdge<W>, W> for PrePlanarGraph<W> {
         self.points.clone().into_iter()
     }
 
-    fn N(&self, u: usize) -> Vec<PrePlanarEdge<W>> {
-        self.adj_list[u].iter().map(|i| self.edges[*i].clone()).collect()
-    }
+    #[allow(non_snake_case)]
+    fn N(&self, u: usize) -> &Vec<PrePlanarEdge<W>> { &self.adj_list[u] }
 
     fn add_edge(&mut self, e: PrePlanarEdge<W>) {
         let b = e.reverse();
-        self.adj_list[e.from].push(self.edges.len());
-        self.edges.push(e);
-        self.adj_list[b.from].push(self.edges.len());
-        self.edges.push(b);
+        self.adj_list[e.from()].push(e);
+        self.adj_list[b.from()].push(b);
         self.m += 1;
     }
     fn is_adjacent(&self, u: usize, v: usize) -> bool {
-        self.adj_list[u].iter().find(|e|self.edges[**e].to == v).is_some()
+        let (p, q) = if self.adj_list[u].len() < self.adj_list[v].len() {
+            (u, v)
+        }
+        else {
+            (v, u)
+        };
+        self.adj_list[p].iter().find(|e| e.to() == q).is_some()
     }
 
     fn find_edges(&self, u: usize, v: usize) -> Vec<PrePlanarEdge<W>> {
-        self.adj_list[u].iter().map(|i| self.edges[*i].clone()).filter(|e| e.to() == v).collect()
+        self.adj_list[u]
+            .clone()
+            .into_iter()
+            .filter(|e| e.to() == v)
+            .collect()
     }
 }
 
@@ -194,10 +208,7 @@ impl <W: Weight> Debug for PrePlanarGraph<W> {
         ret.push_str(format!("PlanarGraph(n = {}, m = {}):\n", self.n(), self.m()).as_str());
         for u in self.vertices() {
             if let Some(p) = u {
-                ret.push_str(format!("  N({}) = {:?}\n", p.id, self.adj_list[p.id].iter().map(|q| {
-                    let e = &self.edges[*q];
-                    if e.from == p.id { e.to } else { e.from }
-                }).collect::<Vec<usize>>()).as_str())
+                ret.push_str(format!("  N({}) = {:?}\n", p.id, self.adj_list[p.id].iter().map(|e| e.to()).collect::<Vec<usize>>()).as_str());
             }
             else {
                 ret.push_str("[Point not defined yet]")

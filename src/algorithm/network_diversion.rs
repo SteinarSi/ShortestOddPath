@@ -51,7 +51,7 @@ fn bfs<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du,dv): (usize, u
             if (u,v) != (du,dv) && ! seen[v] {
                 seen[v] = true;
                 q.add(v).ok()?;
-                prev[v] = Some(line);
+                prev[v] = Some(line.clone());
                 if v == t {
                     break;
                 }

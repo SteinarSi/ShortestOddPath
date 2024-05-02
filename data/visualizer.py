@@ -6,9 +6,7 @@ def visualize(directory, level=0):
     items = os.listdir(directory)
     for item in items:
         p = os.path.join(directory, item)
-        if 'planar' in p:
-            continue
-        elif os.path.isdir(p):
+        if os.path.isdir(p):
             print(" " * level + item + ": ")
             visualize(p, level + 2)
         elif os.path.isfile(p) and (p.endswith('.in') or p.endswith('.mtx')):
@@ -27,11 +25,14 @@ def visualize(directory, level=0):
 def read_graph(path):
     with open(path, 'r') as f:
         lines = [line for line in f.readlines() if not line.startswith("%")]
-        n = int(lines[0])
+        n = int(lines[0].split()[0])
         if n >= 100:
             return None
+        if 'planar' in path:
+            lines = lines[n:]
         g = nx.Graph()
-        for uv in ([int(u) for u in uv.split()] for uv in lines[1:]):
+        for uv in ([read(u) for u in uv.split()] for uv in lines[1:]):
+            print("reading", uv)
             if len(uv) == 2:
                 u, v = uv
                 g.add_edge(u, v)
@@ -42,6 +43,10 @@ def read_graph(path):
                 print(uv)
                 raise IOError("Could not read the graph :-(")
         return g
+
+def read(x):
+    a = float(x)
+    return round(a) if round(a) == a else a
 
 def plot_graph(g: nx.Graph, filename=None):
     pos = nx.spring_layout(g, seed=69)

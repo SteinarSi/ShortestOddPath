@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
 use std::cmp::Ordering::Equal;
+use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use crate::structure::graph::edge::{Edge};
 use crate::structure::graph::planar::planar_edge::PlanarEdge;
 use crate::structure::weight::{Weight, Weighted};
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone)]
 pub struct PrePlanarEdge<W: Weight> {
     pub from: usize,
     pub to: usize,
@@ -84,6 +85,17 @@ impl <W: Weight> Eq for PrePlanarEdge<W> {}
 
 impl <W: Weight> Weighted<W> for PrePlanarEdge<W> {
     fn weight(&self) -> W { self.weight }
+}
+
+impl <W: Weight> Debug for PrePlanarEdge<W> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.weight == 1.into() {
+            write!(f, "{} --> {}", self.from, self.to)
+        }
+        else {
+            write!(f, "{} -{}-> {}", self.from, self.weight, self.to)
+        }
+    }
 }
 
 impl <W: Weight> FromStr for PrePlanarEdge<W> {

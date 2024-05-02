@@ -65,23 +65,16 @@ impl <W: Weight> PrePlanarGraph<W> {
         for start_vertex in 0..self.n() {
             for mut curr_line_id in 0..self.adj_list[start_vertex].len() {
                 let mut curr_line = &adj_list_copy[start_vertex][curr_line_id];
-                // let mut curr_line = &edges_copy[self.adj_list[start_vertex][curr_line_id]];
-                // if self.edges[self.adj_list[start_vertex][curr_line_id]].left.is_none() {
                 if self.adj_list[start_vertex][curr_line_id].left.is_none() {
                     loop {
                         self.adj_list[curr_line.from][curr_line_id].left = Some(current_face);
-                        // self.edges[self.adj_list[curr_line.from][curr_line_id]].left = Some(current_face);
-                        let id = (0..adj_list_copy[curr_line.to].len())
-                            .find(|&i| adj_list_copy[curr_line.to][i].to == curr_line.from)
+                        let id = adj_list_copy[curr_line.to]
+                            .iter()
+                            .position(|e| e.to == curr_line.from)
                             .expect("Couldn't find the reverse edge");
-                        // let id = self.adj_list[curr_line.to]
-                        //     .iter().position(|&l| edges_copy[l].to == curr_line.from)
-                        //     .expect("Couldn't find the reverse edge");
                         self.adj_list[curr_line.to][id].right = Some(current_face);
-                        // self.edges[self.adj_list[curr_line.to][id]].right = Some(current_face);
                         curr_line_id = (id + 1) % self.adj_list[curr_line.to].len();
                         curr_line = &adj_list_copy[curr_line.to][curr_line_id];
-                        // curr_line = &edges_copy[self.adj_list[curr_line.to][curr_line_id]];
 
                         if curr_line.from == start_vertex {
                             break;
@@ -99,8 +92,7 @@ impl <W: Weight> PrePlanarGraph<W> {
                 }
             }
         }
-
-        if self.n() + current_face - self.m != 2 {
+        if self.m > self.n() + current_face || self.n() + current_face - self.m != 2 {
             return Err("Either we don't have the correct faces, or Euler's formula is wrong :thinkin:");
         }
         Ok(())

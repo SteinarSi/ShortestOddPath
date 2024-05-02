@@ -7,7 +7,6 @@ use shortest_odd_path::structure::graph::planar::planar_edge::PlanarEdge;
 use shortest_odd_path::structure::graph::planar::planar_graph::PlanarGraph;
 use shortest_odd_path::structure::weight::Weight;
 use utility::Problem;
-use crate::utility::meta_test;
 
 mod utility;
 
@@ -36,7 +35,7 @@ impl <W> Problem<W> for NetworkDiversion
     }
 
     fn display_query((s,t,(u,v),_): &Self::Query) -> String {
-        format!("Network Diversion from {} to {}, every path must go through ({},{})", s,t,u,v)
+        format!("Network Diversion from {} to {}, every path must go through ({},{}):", s,t,u,v)
     }
 
     fn verify_answer(graph: &Self::GraphClass, &(s,t,(du,dv),expected): &Self::Query, (cost, diversion): &Self::Output) {
@@ -57,9 +56,17 @@ impl <W> Problem<W> for NetworkDiversion
     }
 }
 
-fn test_diversion(name: &str) {
-    meta_test::<NetworkDiversion, f64>("planar_graphs", name);
-}
+#[cfg(test)]
+mod small_planar {
+    use crate::NetworkDiversion;
+    use crate::utility::meta_test;
 
-#[test]
-fn planar1() { test_diversion("small_planar1"); }
+    fn test_diversion(name: &str) {
+        meta_test::<NetworkDiversion, f64>("planar_graphs", name);
+    }
+
+    #[test]
+    fn small_planar1() { test_diversion("small_planar1"); }
+    #[test]
+    fn small_planar2() { test_diversion("small_planar2"); }
+}

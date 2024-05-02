@@ -34,7 +34,8 @@ impl <'a, W: Weight> PlanarGraph<W> {
     pub fn N(&self, u: usize) -> &Vec<PlanarEdge<W>> { &self.adj_list[u] }
     pub fn delete_edges(&mut self, r: &Vec<PlanarEdge<W>>) {
         for e in r {
-            self.adj_list[e.from()].retain(|f| f != e);
+            self.adj_list[e.from()].retain(|f| f.to != e.to);
+            self.adj_list[e.to()].retain(|f| f.to != e.from)
         }
     }
 }
@@ -65,7 +66,7 @@ impl <W: Weight> Debug for PlanarGraph<W> {
         let mut ret = String::new();
         ret.push_str(format!("PlanarGraph(n = {}, m = {}):\n", self.n(), self.m()).as_str());
         for u in self.vertices() {
-            ret.push_str(format!("  N({}) = {:?}", u.id, map_to(&self.adj_list[u.id])).as_str());
+            ret.push_str(format!("  N({}) = {:?}\n", u.id, map_to(&self.adj_list[u.id])).as_str());
         }
         write!(f, "{}", ret)
     }
@@ -106,11 +107,29 @@ mod test_planar_graph {
 
         println!("{:?}", planar);
     }
+
+    #[test]
+    fn test_small_planar2() {
+        let planar: super::PlanarGraph <f64> = std::fs::read_to_string("data/planar_graphs/small_planar2/small_planar2.in")
+            .expect("No graph found")
+            .parse()
+            .expect("Could not parse graph");
+
+        assert!(planar.dual().is_adjacent(0, 0));
+        assert!(planar.dual().is_adjacent(0, 1));
+        assert!(planar.dual().is_adjacent(1, 2));
+        assert!(planar.dual().is_adjacent(1, 6));
+        assert!(planar.dual().is_adjacent(5, 6));
+        assert!(planar.dual().is_adjacent(4, 5));
+        assert!(planar.dual().is_adjacent(4, 7));
+        assert!(planar.dual().is_adjacent(4, 2));
+        assert!(planar.dual().is_adjacent(7, 8));
+        assert!(planar.dual().is_adjacent(8, 0));
+
+        assert!( ! planar.dual().is_adjacent(1, 7));
+        assert!( ! planar.dual().is_adjacent(2, 5));
+        assert!( ! planar.dual().is_adjacent(5, 3));
+        assert!( ! planar.dual().is_adjacent(5, 0));
+        assert!( ! planar.dual().is_adjacent(5, 5));
+    }
 }
-
-
-
-
-
-
-

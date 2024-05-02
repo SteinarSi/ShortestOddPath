@@ -23,6 +23,7 @@ pub fn meta_test<Pr, W: Weight>(folder: &str, name: &str)
         .parse()
         .expect("Could not parse the graph");
     for query in queries {
+        println!("\n{}", Pr::display_query(&query));
         Pr::verify_answer(&graph, &query, &Pr::compute(&graph, &query));
     }
     println!("Success :-)")

@@ -6,35 +6,38 @@ use crate::structure::path_result::{PathResult::*};
 use crate::structure::graph::planar::planar_edge::PlanarEdge;
 use crate::structure::graph::planar::planar_graph::PlanarGraph;
 use crate::structure::weight::Weight;
-use crate::utility::misc::{debug, repeat};
+use crate::utility::misc::repeat;
 
 pub fn network_diversion<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du, dv): (usize,usize)) -> (W, Vec<PlanarEdge<W>>) {
-    let path: Vec<PlanarEdge<W>> = bfs(graph, s, t, (du, dv))
-        .expect("Could not find an s-t-path at all, the graph isn't connected")
-        .iter()
-        .map(|e| e.rotate_right())
-        .collect();
-    debug(format!("Path: {:?}", path));
-    let diversion = graph.N(du).iter()
-        .find(|l| l.to == dv)
-        .expect("The diversion edge doesn't exist")
-        .clone();
-    let (split, map) = split_edges(graph.dual(), path);
-    match shortest_odd_path(&split, diversion.left, diversion.right) {
-        Impossible => {
-            panic!("Uhhhhh there really should be an odd path here, but we couldn't find it");
-        }
-        Possible {cost, path} => {
-            let mapped: Vec<PlanarEdge<W>> = path.iter().flat_map(|e| map(e)).collect();
-            let rotated: Vec<PlanarEdge<W>> = mapped.iter().map(|e| e.rotate_right()).collect();
-            debug(format!("\nDual diversion set: {:?}", mapped));
-            debug(format!("Real diversion set: {:?}\n", rotated));
+    if let Some(p) = bfs(graph, s, t, (du,dv)) {
+        let path = p.iter()
+            .map(|e| e.rotate_right())
+            .collect();
+        let diversion = graph.N(du).iter()
+            .find(|l| l.to == dv)
+            .expect("The diversion edge doesn't exist")
+            .clone();
+        let (split, map) = split_edges(graph.dual(), path);
+        match shortest_odd_path(&split, diversion.left, diversion.right) {
+            Impossible => {
+                panic!("Uhhhhh there really should be an odd path here, but we couldn't find it");
+            }
+            Possible {cost, path} => {
+                let mapped: Vec<PlanarEdge<W>> = path.iter().flat_map(|e| map(e)).collect();
+                let rotated: Vec<PlanarEdge<W>> = mapped.iter().map(|e| e.rotate_right()).collect();
+                println!("Dual diversion set: {:?}", mapped);
+                println!("Real diversion set: {:?}\n", rotated);
 
-            (
-                cost,
-                rotated,
-            )
+                (
+                    cost,
+                    rotated,
+                )
+            }
         }
+    }
+    else {
+        println!("Could not find any s-t-path that doesn't use the diversion edge, no diversion is needed.");
+        return (0.into(), Vec::new());
     }
 }
 
@@ -48,7 +51,7 @@ fn bfs<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du,dv): (usize, u
     while let Ok(u) = q.remove() {
         for line in graph.N(u) {
             let v = line.to;
-            if (u,v) != (du,dv) && ! seen[v] {
+            if (u,v) != (du,dv) && (v,u) != (du,dv) && ! seen[v] {
                 seen[v] = true;
                 q.add(v).ok()?;
                 prev[v] = Some(line.clone());
@@ -66,8 +69,6 @@ fn bfs<W: Weight>(graph: &PlanarGraph<W>, s: usize, t: usize, (du,dv): (usize, u
             curr = prev[curr.from].clone().unwrap();
             ret.push(curr.clone());
         }
-        // TODO reversing isn't necessary, this is just for debugging purposes
-        ret.reverse();
         return Some(ret);
     }
     None

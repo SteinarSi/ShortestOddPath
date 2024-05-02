@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 use std::str::FromStr;
 use crate::structure::graph::edge::Edge;
-use crate::structure::graph::graph::Graph;
+use crate::structure::graph::graph::{Graph, GraphInternal};
 use crate::structure::weight::Weight;
 
 #[derive(PartialEq, Clone)]
@@ -31,26 +31,17 @@ impl <W: Weight, E: Edge<W>> UndirectedGraph<W,E> {
     }
 }
 
+impl <W: Weight, E: Edge<W>> GraphInternal<E,W> for UndirectedGraph<W,E> {
+    fn adj_list(&self) -> &Vec<Vec<E>> { &self.adj_list }
+    fn adj_list_mut(&mut self) -> &mut Vec<Vec<E>> { &mut self.adj_list }
+    fn m_mut(&mut self) -> &mut usize { &mut self.m }
+}
+
 impl <'a, W: Weight, E: Edge<W>> Graph<'a, E, W> for UndirectedGraph<W,E> {
     type V = usize;
     fn n(&self) -> usize { self.n }
     fn m(&self) -> usize { self.m }
     fn vertices(&'a self) -> impl Iterator<Item = usize> { 0..self.n }
-    #[allow(non_snake_case)]
-    fn N(&self, u: usize) -> &Vec<E> { &self.index(&u) }
-    fn add_edge(&mut self, e: E) {
-        let c = e.reverse();
-        self.adj_list[e.from()].push(e);
-        self.adj_list[c.from()].push(c);
-        self.m += 1;
-    }
-    fn is_adjacent(&self, u: usize, v: usize) -> bool {
-        self.adj_list[u].iter().find(|e| e.to() == v).is_some()
-    }
-
-    fn find_edges(&self, u: usize, v: usize) -> Vec<E> {
-        self.adj_list[u].clone().into_iter().filter(|e| e.to() == v).collect()
-    }
 }
 
 impl <W: Weight, E: Edge<W>> From<String> for UndirectedGraph<W,E> {

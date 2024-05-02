@@ -1,8 +1,9 @@
 use std::fmt::{Debug, Formatter};
+use std::ops::Index;
 use std::str::FromStr;
 
 use crate::structure::graph::edge::{Edge, map_to};
-use crate::structure::graph::graph::Graph;
+use crate::structure::graph::graph::{Graph, GraphInternal};
 use crate::structure::graph::planar::planar_edge::PlanarEdge;
 use crate::structure::graph::planar::point::Point;
 use crate::structure::graph::planar::pre_planar_graph::PrePlanarGraph;
@@ -37,6 +38,11 @@ impl <'a, W: Weight> PlanarGraph<W> {
         }
     }
 }
+impl <W: Weight> GraphInternal<PlanarEdge<W>,W> for PlanarGraph<W> {
+    fn adj_list(&self) -> &Vec<Vec<PlanarEdge<W>>> { &self.adj_list }
+    fn adj_list_mut(&mut self) -> &mut Vec<Vec<PlanarEdge<W>>> { &mut self.adj_list }
+    fn m_mut(&mut self) -> &mut usize { &mut self.m }
+}
 
 impl <'a, W: Weight> Graph<'a, PlanarEdge<W>, W> for PlanarGraph<W> {
     type V = Point;
@@ -44,35 +50,6 @@ impl <'a, W: Weight> Graph<'a, PlanarEdge<W>, W> for PlanarGraph<W> {
     fn m(&self) -> usize { self.m }
     fn vertices(&'a self) -> impl Iterator<Item = Point> {
         self.points.clone().into_iter()
-    }
-    #[allow(non_snake_case)]
-    fn N(&self, u: usize) -> &Vec<PlanarEdge<W>> {
-        &self.adj_list[u]
-    }
-
-    fn add_edge(&mut self, e: PlanarEdge<W>) {
-        let b = e.reverse();
-        self.adj_list[e.from()].push(e);
-        self.adj_list[b.from()].push(b);
-        self.m += 1;
-    }
-
-    fn is_adjacent(&self, u: usize, v: usize) -> bool {
-        let (p, q) = if self.adj_list[u].len() < self.adj_list[v].len() {
-            (u, v)
-        }
-        else {
-            (v, u)
-        };
-        self.adj_list[p].iter().find(|e| e.to() == q).is_some()
-    }
-
-    fn find_edges(&self, u: usize, v: usize) -> Vec<PlanarEdge<W>> {
-        self.adj_list[u]
-            .clone()
-            .into_iter()
-            .filter(|e| e.to() == v)
-            .collect()
     }
 }
 
@@ -92,6 +69,16 @@ impl <W: Weight> Debug for PlanarGraph<W> {
         }
         write!(f, "{}", ret)
     }
+}
+
+impl <W: Weight> Index<&usize> for PlanarGraph<W> {
+    type Output = Vec<PlanarEdge<W>>;
+    fn index(&self, index: &usize) -> &Self::Output { &self.adj_list[*index] }
+}
+
+impl <W: Weight> Index<&Point> for PlanarGraph<W> {
+    type Output = Vec<PlanarEdge<W>>;
+    fn index(&self, index: &Point) -> &Self::Output { &self.adj_list[index.id] }
 }
 
 

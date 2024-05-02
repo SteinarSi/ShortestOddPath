@@ -6,7 +6,7 @@ use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::{BinaryHeap};
 use crate::algorithm::utility;
-use crate::structure::graph::base::Base;
+use crate::structure::base::Base;
 use crate::structure::graph::edge::{Edge};
 use crate::structure::todo::{Todo, Todo::*};
 use crate::structure::weight::{Weight};

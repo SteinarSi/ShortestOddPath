@@ -56,7 +56,7 @@ impl Debug for Base {
 
 #[cfg(test)]
 mod test_base {
-    use crate::structure::graph::base::Base;
+    use super::*;
 
     #[test]
     fn test_base() {

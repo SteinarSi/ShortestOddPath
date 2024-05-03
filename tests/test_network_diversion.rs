@@ -2,7 +2,6 @@ use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use shortest_odd_path::algorithm::network_diversion::network_diversion;
 use shortest_odd_path::algorithm::shortest_path::bfs;
-use shortest_odd_path::structure::graph::graph::Graph;
 use shortest_odd_path::structure::graph::planar_edge::PlanarEdge;
 use shortest_odd_path::structure::graph::planar_graph::PlanarGraph;
 use shortest_odd_path::structure::weight::Weight;

@@ -41,7 +41,7 @@ impl <W> Problem<W> for ShortestBottleneckPath
             (Infinite, Possible{cost: _, path: _}) => panic!("{}\nExpected not to find a path, but the alg did anyway!", context),
             (Finite(c), Impossible) => panic!("{}\nExpected a path of cost {}, but the alg couldn't find it!", context, c),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
-                verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(graph, &context, *expected_cost, *actual_cost, path, *source, *sink);
+                verify_path::<W,BasicEdge<W>,Self>(graph, &context, *expected_cost, *actual_cost, path, *source, *sink);
                 assert!(path.iter().find(|e| e.from() == *u && e.to() == *v).is_some(), "{}\nThe path was supposed to go through the bottleneck of ({},{}), but it doesn't.", context, u, v);
             },
             _ => {},

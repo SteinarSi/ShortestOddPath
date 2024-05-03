@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use shortest_odd_path::structure::graph::edge::Edge;
-use shortest_odd_path::structure::graph::graph::Graph;
+use shortest_odd_path::structure::graph::undirected_graph::UndirectedGraph;
 use shortest_odd_path::structure::weight::Weight;
 
 pub fn meta_test<Pr, W: Weight>(folder: &str, name: &str)
@@ -43,11 +43,10 @@ pub trait Problem<W>
     fn compute(graph: &Self::GraphClass, query: &Self::Query) -> Self::Output;
 }
 
-pub fn verify_path<'a, W, E, G, Pr>(graph: &G, context: &String, expected_cost: W, actual_cost: W, path: &Vec<E>, source: usize, sink: usize)
+pub fn verify_path<'a, W, E, Pr>(graph: &UndirectedGraph<W,E>, context: &String, expected_cost: W, actual_cost: W, path: &Vec<E>, source: usize, sink: usize)
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
           E: Edge<W>,
-          G: Graph<'a, E, W>,
           Pr: Problem<W>,
 {
     assert_eq!(expected_cost, actual_cost, "{}\nThe costs don't match: expected {}, but got {}.\nThe offending path: {:?}", context, expected_cost, actual_cost, path);

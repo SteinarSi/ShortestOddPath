@@ -39,8 +39,8 @@ impl <W> Problem<W> for TwoDisjointPaths
             (Finite(c), Some((w, p1,p2))) => {
                 assert!( ! p1.iter().any(|u| p2.contains(&u)), "\n{}The two paths were supposed to use different vertices, but they don't:\n{:?}\nand\n{:?}", context, p1,p2);
                 assert_eq!(*c, *w, "{}\nExpected two paths from {} to {} and from {} to {} with a combined length of {}, but found two of length {} instead!\n\n{:?}\nand\n{:?}", context, s1, t1, s2, t2, c, w, p1, p2);
-                verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(&graph, &context, 0.into(), 0.into(), p1, *s1, *t1);
-                verify_path::<W,BasicEdge<W>,Self::GraphClass,Self>(&graph, &context, 0.into(), 0.into(), p2, *s2, *t2);
+                verify_path::<W,BasicEdge<W>,Self>(&graph, &context, 0.into(), 0.into(), p1, *s1, *t1);
+                verify_path::<W,BasicEdge<W>,Self>(&graph, &context, 0.into(), 0.into(), p2, *s2, *t2);
             }
             _ => {}
         }

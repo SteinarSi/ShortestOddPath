@@ -39,7 +39,7 @@ impl <W> Problem<W> for ShortestOddWalk
             (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-walk of cost {}, but it did not", context, 0, sink, cost),
             (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
                 assert_eq!(path.len() % 2, 1);
-                verify_path::<W, BasicEdge<W>, Self::GraphClass, Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
+                verify_path::<W, BasicEdge<W>, Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
             },
             _ => {}
         }

@@ -1,6 +1,5 @@
 use crate::structure::{
     graph::undirected_graph::UndirectedGraph,
-    graph::graph::Graph,
     cost::{Cost, Cost::*},
     path_result::{PathResult, PathResult::*},
 };

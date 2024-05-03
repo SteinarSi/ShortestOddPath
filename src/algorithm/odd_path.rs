@@ -1,7 +1,6 @@
 use std::cmp::Reverse;
 use crate::structure::path_result::{PathResult, PathResult::*};
 use crate::structure::cost::{Cost::*, Cost};
-use crate::structure::graph::graph::Graph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::{BinaryHeap};

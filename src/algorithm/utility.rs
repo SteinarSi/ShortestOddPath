@@ -1,6 +1,5 @@
 use std::collections::BTreeSet;
 use crate::structure::graph::edge::{Edge};
-use crate::structure::graph::graph::Graph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::{Weight};
 

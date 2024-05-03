@@ -3,7 +3,6 @@ use std::collections::BinaryHeap;
 use queues::{IsQueue, Queue};
 use crate::structure::cost::{Cost, Cost::*};
 use crate::structure::graph::edge::Edge;
-use crate::structure::graph::graph::Graph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::{Order, Weight};
 use crate::utility::misc::repeat;
@@ -30,10 +29,9 @@ pub fn all_shortest_paths<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s
     dist
 }
 
-pub fn bfs<'a,W,E,G>(graph: &'a G, s: usize) -> Vec<Cost<u64>>
+pub fn bfs<W,E>(graph: &UndirectedGraph<W,E>, s: usize) -> Vec<Cost<u64>>
     where W: Weight,
           E: Edge<W>,
-          G: Graph<'a,E,W>,
 {
     let mut dist = repeat(graph.n(), Infinite);
     let mut q: Queue<(usize, u64)> = Queue::new();
@@ -41,7 +39,7 @@ pub fn bfs<'a,W,E,G>(graph: &'a G, s: usize) -> Vec<Cost<u64>>
     dist[s] = Finite(0);
 
     while let Ok((u,d)) = q.remove() {
-        for e in graph.N(u) {
+        for e in &graph[&u] {
             let v = e.to();
             if dist[v].is_infinite() {
                 dist[v] = Finite(d + 1);

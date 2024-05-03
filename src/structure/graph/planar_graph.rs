@@ -1,6 +1,5 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
-use crate::structure::graph::graph::{Graph, GraphInternal};
 use crate::structure::graph::planar_edge::{PlanarEdge, PrePlanarEdge};
 use crate::structure::graph::point::{compare_edges_clockwise, Point};
 use crate::structure::graph::undirected_graph::UndirectedGraph;
@@ -46,7 +45,7 @@ impl <W: Weight> PrePlanarGraph<W> {
 
         let mut real = UndirectedGraph::new(self.graph.n());
         let mut dual = UndirectedGraph::new(f);
-        self.graph.adj_list().iter().for_each(|xs| {
+        self.graph.adj_list.iter().for_each(|xs| {
             xs.iter().for_each(|e| {
                 let p = e.planarize();
                 let b = p.rotate_right();
@@ -63,13 +62,13 @@ impl <W: Weight> PrePlanarGraph<W> {
     fn sort_edges(&mut self, points: &Vec<Point>) {
         for u in 0..self.graph.n() {
             self.graph
-                .adj_list_mut()[u]
+                .adj_list[u]
                 .sort_by(compare_edges_clockwise(&points[u], &points));
         }
     }
     fn determine_faces(&mut self, points: &Vec<Point>) -> Result<usize, &'static str> {
         let n = self.graph.n();
-        let adj_list = self.graph.adj_list_mut();
+        let adj_list = &mut self.graph.adj_list;
         let adj_list_copy = adj_list.clone();
         let mut current_face = 0;
         for start_vertex in 0..n {
@@ -149,7 +148,6 @@ impl <W: Weight> FromStr for PlanarGraph<W> {
 }
 
 mod test_planar_graph {
-    use crate::structure::graph::graph::Graph;
 
     #[test]
     fn test_small_planar1() {

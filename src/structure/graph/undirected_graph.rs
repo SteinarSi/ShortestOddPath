@@ -1,9 +1,9 @@
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+use std::str;
 use std::str::FromStr;
 use crate::structure::graph::edge::Edge;
-use crate::structure::graph::graph::{Graph, GraphInternal};
 use crate::structure::weight::Weight;
 
 #[derive(PartialEq, Clone)]
@@ -11,7 +11,7 @@ pub struct UndirectedGraph<W, E>
     where W: Weight,
           E: Edge<W>,
 {
-    adj_list: Vec<Vec<E>>,
+    pub (in crate::structure::graph) adj_list: Vec<Vec<E>>,
     n: usize,
     m: usize,
     _marker: PhantomData<W>,
@@ -25,23 +25,41 @@ impl <W: Weight, E: Edge<W>> UndirectedGraph<W,E> {
             _marker: PhantomData::default(),
         }
     }
-    pub(crate) unsafe fn add_directed_edge(&mut self, e: E) {
+    pub fn n(&self) -> usize { self.n }
+    pub fn m(&self) -> usize { self.m }
+    pub fn add_edge(&mut self, e: E) {
+        let b = e.reverse();
         self.adj_list[e.from()].push(e);
-        self.m = self.m + 1;
+        self.adj_list[b.from()].push(b);
+        self.m += 1;
     }
-}
-
-impl <W: Weight, E: Edge<W>> GraphInternal<E,W> for UndirectedGraph<W,E> {
-    fn adj_list(&self) -> &Vec<Vec<E>> { &self.adj_list }
-    fn adj_list_mut(&mut self) -> &mut Vec<Vec<E>> { &mut self.adj_list }
-    fn m_mut(&mut self) -> &mut usize { &mut self.m }
-}
-
-impl <'a, W: Weight, E: Edge<W>> Graph<'a, E, W> for UndirectedGraph<W,E> {
-    type V = usize;
-    fn n(&self) -> usize { self.n }
-    fn m(&self) -> usize { self.m }
-    fn vertices(&'a self) -> impl Iterator<Item = usize> { 0..self.n }
+    pub fn is_adjacent(&self, u: usize, v: usize) -> bool {
+        let (p, q) = if self.adj_list[u].len() < self.adj_list[v].len() {
+            (u, v)
+        }
+        else {
+            (v, u)
+        };
+        self.adj_list[p].iter().find(|e| e.to() == q).is_some()
+    }
+    pub fn find_edges(&self, u: usize, v: usize) -> Vec<E> {
+        self.adj_list[u]
+            .clone()
+            .into_iter()
+            .filter(|e| e.to() == v)
+            .collect()
+    }
+    pub fn delete_edges(&mut self, r: &Vec<E>) {
+        for e in r {
+            self.adj_list[e.from()].retain(|f| f.to() != e.to());
+            self.adj_list[e.to()].retain(|f| f.to() != e.from())
+        }
+    }
+    #[allow(non_snake_case)]
+    pub fn N(&self, u: usize) -> &Vec<E> { &self[&u] }
+    #[allow(non_snake_case)]
+    pub fn V(&self) -> impl Iterator<Item = usize> { self.vertices() }
+    pub fn vertices(&self) -> impl Iterator<Item = usize> { 0..self.n }
 }
 
 impl <W: Weight, E: Edge<W>> From<String> for UndirectedGraph<W,E> {
@@ -74,16 +92,18 @@ impl <W: Weight, E: Edge<W>> FromStr for UndirectedGraph<W,E> {
 
 impl <W: Weight, E: Edge<W>> Index<&usize> for UndirectedGraph<W,E> {
     type Output = Vec<E>;
-
-    fn index(&self, u: &usize) -> &Self::Output {
-        &self.adj_list[*u]
-    }
+    fn index(&self, u: &usize) -> &Self::Output { &self.adj_list[*u] }
+}
+impl <W: Weight, E: Edge<W>> Index<usize> for UndirectedGraph<W,E> {
+    type Output = Vec<E>;
+    fn index(&self, u: usize) -> &Self::Output { &self[&u] }
 }
 
 impl <W: Weight, E: Edge<W>> IndexMut<&usize> for UndirectedGraph<W,E> {
-    fn index_mut(&mut self, u: &usize) -> &mut Self::Output {
-        &mut self.adj_list[*u]
-    }
+    fn index_mut(&mut self, u: &usize) -> &mut Self::Output { &mut self.adj_list[*u] }
+}
+impl <W: Weight, E: Edge<W>> IndexMut<usize> for UndirectedGraph<W,E> {
+    fn index_mut(&mut self, u: usize) -> &mut Self::Output { &mut self[&u] }
 }
 
 impl <W,E> Debug for UndirectedGraph<W,E>

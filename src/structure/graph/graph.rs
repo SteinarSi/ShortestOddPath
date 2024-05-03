@@ -37,6 +37,12 @@ pub trait Graph<'a, E, W>: GraphInternal<E,W>
             .filter(|e| e.to() == v)
             .collect()
     }
+    fn delete_edges(&mut self, r: &Vec<E>) {
+        for e in r {
+            self.adj_list_mut()[e.from()].retain(|f| f.to() != e.to());
+            self.adj_list_mut()[e.to()].retain(|f| f.to() != e.from())
+        }
+    }
 }
 
 pub (in crate::structure::graph) trait GraphInternal<E, W>

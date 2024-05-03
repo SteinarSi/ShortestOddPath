@@ -3,8 +3,8 @@ use std::str::FromStr;
 use shortest_odd_path::algorithm::network_diversion::network_diversion;
 use shortest_odd_path::algorithm::shortest_path::bfs;
 use shortest_odd_path::structure::graph::graph::Graph;
-use shortest_odd_path::structure::graph::planar::planar_edge::PlanarEdge;
-use shortest_odd_path::structure::graph::planar::planar_graph::PlanarGraph;
+use shortest_odd_path::structure::graph::planar_edge::PlanarEdge;
+use shortest_odd_path::structure::graph::planar_graph::PlanarGraph;
 use shortest_odd_path::structure::weight::Weight;
 use utility::Problem;
 
@@ -38,9 +38,9 @@ impl <W> Problem<W> for NetworkDiversion
         format!("Network Diversion from {} to {}, every path must go through ({},{}):", s,t,u,v)
     }
 
-    fn verify_answer(graph: &Self::GraphClass, &(s,t,(du,dv),expected): &Self::Query, (cost, diversion): &Self::Output) {
+    fn verify_answer(planar: &Self::GraphClass, &(s,t,(du,dv),expected): &Self::Query, (cost, diversion): &Self::Output) {
         assert_eq!(expected, *cost);
-        let mut g = graph.clone();
+        let mut g = planar.real().clone();
         let mut bottleneck = g.find_edges(du, dv);
         g.delete_edges(diversion);
         let dist_before = bfs(&g, s);

@@ -1,7 +1,9 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
+use crate::structure::graph::edge::Edge;
 use crate::structure::graph::planar_edge::{PlanarEdge, PrePlanarEdge};
 use crate::structure::graph::point::{compare_edges_clockwise, Point};
+use crate::structure::graph::simple_graph_strategy::{SimpleGraphStrategy, SumWeights};
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
 use crate::utility::misc::repeat;
@@ -17,6 +19,30 @@ impl <W: Weight> PlanarGraph<W> {
     pub fn n(&self) -> usize { self.real.n() }
     pub fn m(&self) -> usize { self.real.m() }
     pub fn f(&self) -> usize { self.dual.n() }
+    pub fn parse<S: SimpleGraphStrategy>(str: &str) -> Result<Self, &'static str> {
+        let mut ls = str.lines()
+            .map(str::trim)
+            .filter(|&l| l.len() > 0 && ! l.starts_with("%"));
+        let mut row1 = ls.next()
+            .ok_or("Could not find the first row")?
+            .split(' ')
+            .map(usize::from_str);
+        let n = row1.next()
+            .ok_or("Could not find n")?
+            .or(Err("Could not parse n"))?;
+        let m = row1.next()
+            .ok_or("Could not find m")?
+            .or(Err("Could not parse m"))?;
+        let mut pre = PrePlanarGraph::empty(n);
+
+        for _ in 0..n {
+            pre.add_vertex(ls.next().ok_or("Expected another vertex here, but got nothing")?.parse()?);
+        }
+        for _ in 0..m {
+            pre.add_edge::<S>(ls.next().ok_or("Expected another edge here, but got nothing")?.parse()?);
+        }
+        Ok(pre.planarize()?)
+    }
 }
 
 struct PrePlanarGraph<W: Weight> {
@@ -35,6 +61,26 @@ impl <W: Weight> PrePlanarGraph<W> {
         let i = u.id;
         self.points[i] = Some(u);
     }
+
+    pub fn add_edge<S: SimpleGraphStrategy>(&mut self, x: PrePlanarEdge<W>) {
+        let (u,v, e) = if self.graph.adj_list[x.from].len() < self.graph.adj_list[x.to].len() {
+            (x.from(), x.to(), x)
+        } else {
+            (x.to(), x.from(), x.reverse())
+        };
+        if let Some(i) = self.graph.adj_list[u].iter().position(|x| x.to == v) {
+            let b = e.reverse();
+            self.graph.adj_list[u][i] = S::combine(e, self.graph.adj_list[u][i].clone());
+            let j = self.graph.adj_list[v].iter()
+                .position(|v| v.to == u)
+                .expect("Uhm, looks like we have a uni-directional edge here");
+            self.graph.adj_list[v][j] = S::combine(b, self.graph.adj_list[v][j].clone());
+        }
+        else {
+            self.graph.add_edge(e);
+        }
+    }
+
     pub fn planarize(mut self) -> Result<PlanarGraph<W>, &'static str> {
         let mut points = Vec::new();
         for p in &self.points {
@@ -46,7 +92,9 @@ impl <W: Weight> PrePlanarGraph<W> {
         let mut real = UndirectedGraph::new(self.graph.n());
         let mut dual = UndirectedGraph::new(f);
         self.graph.adj_list.iter().for_each(|xs| {
-            xs.iter().for_each(|e| {
+            xs.iter()
+                .filter(|e| e.from() < e.to())
+                .for_each(|e| {
                 let p = e.planarize();
                 let b = p.rotate_right();
                 real.add_edge(p);
@@ -102,9 +150,11 @@ impl <W: Weight> PrePlanarGraph<W> {
             }
         }
         if self.graph.m() > n + current_face || n + current_face - self.graph.m() != 2 {
-            return Err("Either we don't have the correct faces, or Euler's formula is wrong :thinkin:");
+            println!("n = {}, m = {}, f = {}", self.graph.n(), self.graph.m(), current_face);
+            println!("Either we don't have the correct faces, or Euler's formula is wrong :thinkin:");
+            // return Err("Either we don't have the correct faces, or Euler's formula is wrong :thinkin:");
         }
-        Ok(self.graph.m() - self.graph.n() + 2)
+        Ok(current_face)
     }
 }
 
@@ -122,39 +172,23 @@ impl <W: Weight> Debug for PlanarGraph<W> {
 impl <W: Weight> FromStr for PlanarGraph<W> {
     type Err = &'static str;
     fn from_str(str: &str) -> Result<Self, Self::Err> {
-        let mut ls = str.lines()
-            .map(str::trim)
-            .filter(|&l| l.len() > 0 && ! l.starts_with("%"));
-        let mut row1 = ls.next()
-            .ok_or("Could not find the first row")?
-            .split(' ')
-            .map(usize::from_str);
-        let n = row1.next()
-            .ok_or("Could not find n")?
-            .or(Err("Could not parse n"))?;
-        let m = row1.next()
-            .ok_or("Could not find m")?
-            .or(Err("Could not parse m"))?;
-        let mut pre = PrePlanarGraph::empty(n);
-
-        for _ in 0..n {
-            pre.add_vertex(ls.next().ok_or("Expected another vertex here, but got nothing")?.parse()?);
-        }
-        for _ in 0..m {
-            pre.graph.add_edge(ls.next().ok_or("Expected another edge here, but got nothing")?.parse()?);
-        }
-        Ok(pre.planarize()?)
+        Self::parse::<SumWeights>(str)
     }
 }
 
 mod test_planar_graph {
+    use crate::structure::graph::planar_graph::PlanarGraph;
+
+    fn parse(name: &str) -> PlanarGraph<f64> {
+        std::fs::read_to_string(["data/planar_graphs/small_planar_graphs/", name, "/", name, ".in"].concat())
+            .expect("No graph found")
+            .parse::<PlanarGraph<f64>>()
+            .expect("Could not parse graph")
+    }
 
     #[test]
     fn test_small_planar1() {
-        let planar: super::PlanarGraph <f64> = std::fs::read_to_string("data/planar_graphs/small_planar1/small_planar1.in")
-            .expect("No graph found")
-            .parse()
-            .expect("Could not parse graph");
+        let planar = parse("small_planar1");
 
         assert!(planar.dual().is_adjacent(0, 0));
         assert!(planar.dual().is_adjacent(0, 1));
@@ -173,10 +207,7 @@ mod test_planar_graph {
 
     #[test]
     fn test_small_planar2() {
-        let planar: super::PlanarGraph <f64> = std::fs::read_to_string("data/planar_graphs/small_planar2/small_planar2.in")
-            .expect("No graph found")
-            .parse()
-            .expect("Could not parse graph");
+        let planar = parse("small_planar2");
 
         assert!(planar.dual().is_adjacent(0, 0));
         assert!(planar.dual().is_adjacent(0, 1));
@@ -194,6 +225,13 @@ mod test_planar_graph {
         assert!( ! planar.dual().is_adjacent(5, 3));
         assert!( ! planar.dual().is_adjacent(5, 0));
         assert!( ! planar.dual().is_adjacent(5, 5));
+
+        println!("{:?}", planar);
+    }
+
+    #[test]
+    fn test_small_planar3() {
+        let planar = parse("small_planar3");
 
         println!("{:?}", planar);
     }

@@ -54,13 +54,15 @@ pub fn bfs<W,E>(graph: &UndirectedGraph<W,E>, s: usize) -> Vec<Cost<u64>>
 #[cfg(test)]
 mod find_worst_pairs {
     use crate::structure::graph::edge::BasicEdge;
+    use crate::structure::graph::planar_edge::PlanarEdge;
+    use crate::structure::graph::planar_graph::PlanarGraph;
     use super::*;
 
     /** Utility to find worst-case tests for each graph, for benchmarking purposes */
-    fn find_worst(filename: &str) {
+    fn find_worst<W: Weight, E: Edge<W>>(graph: UndirectedGraph<W,E>) {
+        println!("Done parsing");
         let s = 0;
-        let graph: UndirectedGraph<u64, BasicEdge<u64>> = std::fs::read_to_string(["data/real_graphs/", filename].concat()).unwrap().parse().unwrap();
-        let dists = all_shortest_paths(&graph, s);
+        let dists = bfs(&graph, s);
         let (cost, t) = (0..graph.n())
             .map(|u| (dists[u], u))
             .filter(|(d,_)| d.is_finite())
@@ -72,11 +74,25 @@ mod find_worst_pairs {
             .sum();
         println!("Distances: {:?}", dists);
         println!("Starting from {}, we can reach {} / {} vertices in the graph", s, seen, graph.n());
-        println!("The by worst vertex to find from s = {} is {}, with a distance of {:?}.", s, t, cost)
+        println!("The worst vertex to find from s = {} is {}, with a distance of {:?}.", s, t, cost)
+    }
+    fn read_normal<W: Weight>(path: &str) -> UndirectedGraph<W, BasicEdge<W>> {
+        std::fs::read_to_string(path)
+            .expect("Could not find the graph")
+            .parse()
+            .expect("Could not parse the graph")
+    }
+    fn read_planar<W: Weight>(path: &str) -> UndirectedGraph<W, PlanarEdge<W>> {
+        std::fs::read_to_string(path)
+            .expect("Could not find the graph")
+            .parse::<PlanarGraph<W>>()
+            .expect("Could not parse the graph")
+            .real()
+            .clone()
     }
     #[test]
     fn find_worst_case_pair() {
-        // find_worst("COX2.mtx");
-        // find_worst("CityOfOldenburg.in");
+        find_worst(read_normal::<f64>("data/real_graphs/CityOfOldenburg.in"));
+        find_worst(read_planar::<f64>("data/planar_graphs/real_planar_graphs/CityOfOldenburg/CityOfOldenburg.in"));
     }
 }

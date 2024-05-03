@@ -61,7 +61,7 @@ mod small_planar {
     use crate::utility::meta_test;
 
     fn test_diversion(name: &str) {
-        meta_test::<NetworkDiversion, f64>("planar_graphs", name);
+        meta_test::<NetworkDiversion, f64>("planar_graphs/small_planar_graphs", name);
     }
 
     #[test]

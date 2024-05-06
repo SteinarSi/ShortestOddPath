@@ -1,18 +1,18 @@
-use std::cmp::Ordering;
-use std::cmp::Ordering::{Equal, Greater, Less};
+use std::cmp::Ordering::{self, Equal};
 use std::ops::{Add, Neg, Sub};
 use num::Complex;
+use crate::structure::graph::edge::Edge;
 use crate::structure::graph::planar_edge::PrePlanarEdge;
 use crate::structure::weight::Weight;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Copy)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
 }
 
 impl Point {
-    pub fn new(x: f64, y: f64) -> Self {
+    pub const fn new(x: f64, y: f64) -> Self {
         Point {
             x,
             y
@@ -20,6 +20,9 @@ impl Point {
     }
     pub fn cross(&self, other: &Self) -> f64 {
         self.x * other.y - self.y * other.x
+    }
+    fn angle(&self) -> f64 {
+        Complex::new(self.x, self.y).to_polar().1.neg()
     }
 }
 
@@ -41,16 +44,10 @@ impl Sub for Point {
 
 pub fn compare_edges_clockwise<'a, W: Weight>(center: &'a Point, points: &'a Vec<Point>) -> impl FnMut(&PrePlanarEdge<W>, &PrePlanarEdge<W>) -> Ordering + 'a {
     |a, b| {
-        let fa = angle_from_center(center, &points[a.to]);
-        let fb = angle_from_center(center, &points[b.to]);
-        if fa < fb { Less }
-        else if fa > fb { Greater }
-        else { Equal }
+        let fa = (points[a.to()] - *center).angle();
+        let fb = (points[b.to()] - *center).angle();
+        fa.partial_cmp(&fb).unwrap_or_else(|| Equal)
     }
-}
-
-fn angle_from_center(center: &Point, other: &Point) -> f64 {
-    return (Complex::new(other.x, other.y) - Complex::new(center.x, center.y)).to_polar().1.neg();
 }
 
 #[cfg(test)]

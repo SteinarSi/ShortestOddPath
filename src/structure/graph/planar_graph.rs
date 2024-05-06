@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use crate::structure::graph::edge::Edge;
-use crate::structure::graph::planar_edge::{PlanarEdge, PrePlanarEdge};
+use crate::structure::graph::planar_edge::{intersect, PlanarEdge, PrePlanarEdge};
 use crate::structure::graph::point::{compare_edges_clockwise, Point};
 use crate::structure::graph::simple_graph_strategy::{SimpleGraphStrategy, SumWeights};
 use crate::structure::graph::undirected_graph::UndirectedGraph;
@@ -19,7 +19,7 @@ impl <W: Weight> PlanarGraph<W> {
     pub fn n(&self) -> usize { self.real.n() }
     pub fn m(&self) -> usize { self.real.m() }
     pub fn f(&self) -> usize { self.dual.n() }
-    pub fn parse<S: SimpleGraphStrategy>(str: &str) -> Result<Self, &'static str> {
+    pub fn parse<S: SimpleGraphStrategy>(str: &str, assert_planarity: bool) -> Result<Self, &'static str> {
         let mut ls = str.lines()
             .map(str::trim)
             .filter(|&l| l.len() > 0 && ! l.starts_with("%"));
@@ -33,7 +33,7 @@ impl <W: Weight> PlanarGraph<W> {
         let m = row1.next()
             .ok_or("Could not find m")?
             .or(Err("Could not parse m"))?;
-        let mut pre = PrePlanarGraph::empty(n);
+        let mut pre = PrePlanarGraph::empty(n, assert_planarity);
 
         for _ in 0..n {
             let mut ws = ls.next().ok_or("Expected another vertex here, but got nothing")?.split(' ');
@@ -52,13 +52,15 @@ impl <W: Weight> PlanarGraph<W> {
 struct PrePlanarGraph<W: Weight> {
     graph: UndirectedGraph<W, PrePlanarEdge<W>>,
     points: Vec<Option<Point>>,
+    assert_planarity: bool,
 }
 
 impl <W: Weight> PrePlanarGraph<W> {
-    pub fn empty(n: usize) -> Self {
+    pub fn empty(n: usize, assert_planarity: bool) -> Self {
         PrePlanarGraph {
             graph: UndirectedGraph::new(n),
             points: repeat(n, None),
+            assert_planarity,
         }
     }
     pub fn add_vertex(&mut self, i: usize, u: Point) {
@@ -89,6 +91,10 @@ impl <W: Weight> PrePlanarGraph<W> {
         for p in &self.points {
             points.push(p.clone().ok_or("Not all points have been defined")?);
         }
+        if self.assert_planarity {
+            self.assert_planarity(&points)?;
+        }
+
         self.sort_edges(&points);
         let f = self.determine_faces()?;
 
@@ -110,6 +116,7 @@ impl <W: Weight> PrePlanarGraph<W> {
             dual,
         })
     }
+
     fn sort_edges(&mut self, points: &Vec<Point>) {
         for u in 0..self.graph.n() {
             self.graph
@@ -154,10 +161,39 @@ impl <W: Weight> PrePlanarGraph<W> {
         }
         if self.graph.m() > n + current_face || n + current_face - self.graph.m() != 2 {
             println!("n = {}, m = {}, f = {}", self.graph.n(), self.graph.m(), current_face);
+            println!("We should have had {} - {} + 2 = {} regions, but we found {}.", self.graph.m(), n, self.graph.m() - self.graph.n() + 2, current_face);
             println!("Either we don't have the correct faces, or Euler's formula is wrong :thinkin:");
-            // return Err("Either we don't have the correct faces, or Euler's formula is wrong :thinkin:");
         }
         Ok(current_face)
+    }
+
+    fn assert_planarity(&self, points: &Vec<Point>) -> Result<(), &'static str> {
+        let mut intersections = Vec::new();
+        let edges = self.graph.edges();
+        for i in 0..edges.len() {
+            let ab = &edges[i];
+            if ab.from() > ab.to() { continue; }
+            for j in i+1..edges.len() {
+                let cd = &edges[j];
+                if cd.from() < cd.to() && ab != &cd.reverse() && intersect(&points, ab, cd) {
+                    intersections.push((edges[i].clone(), edges[j].clone()));
+                }
+            }
+        }
+        if ! intersections.is_empty() {
+            println!("This cannot be a straight-line embedding, we found {} pairs of edges that intersect: ", intersections.len());
+            let mut i = 0;
+            for (ab, cd) in intersections {
+                println!("  {}  x  {}", ab.format_with_coords(&points), cd.format_with_coords(&points));
+                i += 1;
+                if i > 10 {
+                    break;
+                }
+            }
+            Err("This is not a straight-line embedding :(")
+        }else {
+            Ok(())
+        }
     }
 }
 
@@ -175,23 +211,26 @@ impl <W: Weight> Debug for PlanarGraph<W> {
 impl <W: Weight> FromStr for PlanarGraph<W> {
     type Err = &'static str;
     fn from_str(str: &str) -> Result<Self, Self::Err> {
-        Self::parse::<SumWeights>(str)
+        Self::parse::<SumWeights>(str, false)
     }
 }
 
 mod test_planar_graph {
+    use std::fs::read_to_string;
     use crate::structure::graph::planar_graph::PlanarGraph;
+    use crate::structure::graph::simple_graph_strategy::SumWeights;
 
-    fn parse(name: &str) -> PlanarGraph<f64> {
-        std::fs::read_to_string(["data/planar_graphs/small_planar_graphs/", name, "/", name, ".in"].concat())
-            .expect("No graph found")
-            .parse::<PlanarGraph<f64>>()
-            .expect("Could not parse graph")
+    fn parse(folder: &str, name: &str) -> PlanarGraph<f64> {
+        println!("Attempting to parse {}...", name);
+        let input = read_to_string(["data/planar_graphs/", folder, "/", name, "/", name, ".in"].concat())
+            .expect("No graph found");
+        PlanarGraph::parse::<SumWeights>(&input, true)
+            .unwrap_or_else(|err| panic!("Could not parse the graph: {}", err))
     }
 
     #[test]
     fn test_small_planar1() {
-        let planar = parse("small_planar1");
+        let planar = parse("small_planar_graphs","small_planar1");
 
         assert!(planar.dual().is_adjacent(0, 0));
         assert!(planar.dual().is_adjacent(0, 1));
@@ -210,7 +249,7 @@ mod test_planar_graph {
 
     #[test]
     fn test_small_planar2() {
-        let planar = parse("small_planar2");
+        let planar = parse("small_planar_graphs", "small_planar2");
 
         assert!(planar.dual().is_adjacent(0, 0));
         assert!(planar.dual().is_adjacent(0, 1));
@@ -233,9 +272,25 @@ mod test_planar_graph {
     }
 
     #[test]
-    fn test_small_planar3() {
-        let planar = parse("small_planar3");
-
-        println!("{:?}", planar);
+    fn assert_small_planarity() {
+        for name in [
+            "small_planar1",
+            "small_planar2",
+            "small_planar3",
+            "small_planar4"
+        ] {
+            parse("small_planar_graphs", name);
+        }
+    }
+    #[ignore = "The graphs are too large and take too much time to test over again each time."]
+    #[test]
+    fn assert_large_planarity() {
+        for name in [
+            "CityOfOldenburg",
+            "CaliforniaRoadNetwork",
+            "CityOfSanJoaquinCounty",
+        ] {
+            parse("real_planar_graphs", name);
+        }
     }
 }

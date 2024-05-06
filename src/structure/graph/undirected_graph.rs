@@ -60,6 +60,9 @@ impl <W: Weight, E: Edge<W>> UndirectedGraph<W,E> {
     #[allow(non_snake_case)]
     pub fn V(&self) -> impl Iterator<Item = usize> { self.vertices() }
     pub fn vertices(&self) -> impl Iterator<Item = usize> { 0..self.n }
+    pub fn edges(&self) -> Vec<E> {
+        self.adj_list.clone().into_iter().flatten().collect()
+    }
 }
 
 impl <W: Weight, E: Edge<W>> From<String> for UndirectedGraph<W,E> {

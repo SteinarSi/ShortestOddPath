@@ -1,8 +1,8 @@
-use std::cmp::Ordering;
-use std::cmp::Ordering::Equal;
+use std::cmp::Ordering::{self, Equal};
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use crate::structure::graph::edge::{Edge};
+use crate::structure::graph::point::Point;
 use crate::structure::weight::{Weight, Weighted};
 
 #[derive(PartialEq, Clone)]
@@ -20,6 +20,14 @@ impl Sealed for Option<usize> {}
 
 pub type PlanarEdge<W> = AbstractPlanarEdge<W, usize>;
 pub (in crate::structure::graph) type PrePlanarEdge<W> = AbstractPlanarEdge<W, Option<usize>>;
+
+impl <W: Weight, S: Sealed> AbstractPlanarEdge<W,S> {
+    pub fn format_with_coords(&self, points: &Vec<Point>) -> String {
+        let a = points[self.from()];
+        let b = points[self.to()];
+        format!("({:.1},{:.1}) <===> ({:.1},{:.1})", a.x, a.y, b.x, b.y)
+    }
+}
 
 impl <W: Weight> PlanarEdge<W> {
     pub fn left(&self) -> usize { self.left }
@@ -44,6 +52,68 @@ impl <W: Weight> PrePlanarEdge<W> {
             left: self.left.unwrap(),
             right: self.right.unwrap(),
         }
+    }
+    pub const fn new(from: usize, to: usize, weight: W) -> Self {
+        PrePlanarEdge {
+            from,
+            to,
+            weight,
+            left: None,
+            right: None,
+        }
+    }
+}
+
+pub use intersection::intersect;
+mod intersection {
+    use std::cmp::Ordering::{Equal, Greater, Less};
+    use crate::structure::graph::edge::Edge;
+    use crate::structure::graph::point::Point;
+    use crate::structure::weight::Weight;
+    use Orientation::*;
+
+    #[derive(PartialEq)]
+    enum Orientation {
+        Clockwise,
+        Counterclockwise,
+        Colinear,
+    }
+
+    pub fn intersect<W: Weight, E: Edge<W>>(points: &Vec<Point>, ab: &E, cd: &E) -> bool {
+        let a = &points[ab.from()];
+        let b = &points[ab.to()];
+        let c = &points[cd.from()];
+        let d = &points[cd.to()];
+
+        if a == c || a == d || b == c || b == d {
+            return false
+        }
+
+        let o1 = orientation(a, b, c);
+        let o2 = orientation(a, b, d);
+        let o3 = orientation(c, d, a);
+        let o4 = orientation(c, d, b);
+
+        o1 != o2 && o3 != o4 ||
+            o1 == Colinear && on_segment(a, c, b) ||
+            o2 == Colinear && on_segment(a, d, b) ||
+            o3 == Colinear && on_segment(c, a, d) ||
+            o4 == Colinear && on_segment(c, b, d)
+    }
+    fn orientation(p: &Point, q: &Point, r: &Point) -> Orientation {
+        let val = (q.y-p.y) * (r.x-q.x) - (q.x-p.x) * (r.y-q.y);
+        match val.total_cmp(&0.0) {
+            Greater => Clockwise,
+            Less => Counterclockwise,
+            Equal => Colinear,
+        }
+    }
+
+    fn on_segment(p: &Point, q: &Point, r: &Point) -> bool {
+        q.x <= p.x.max(r.x) &&
+            q.x >= p.x.min(r.x) &&
+            q.y <= p.y.max(r.y) &&
+            q.y >= p.y.min(r.y)
     }
 }
 
@@ -130,5 +200,44 @@ impl <W: Weight, S: Sealed> FromStr for AbstractPlanarEdge<W,S> {
             left: S::default(),
             right: S::default(),
         })
+    }
+}
+
+#[cfg(test)]
+mod test_intersection {
+    use crate::structure::graph::planar_edge::{intersect, PrePlanarEdge};
+    use crate::structure::graph::point::Point;
+
+    const POINTS: [Point; 4] = [
+        Point::new( 0.0, 5.0),
+        Point::new(5.0, 5.0),
+        Point::new(0.0, 0.0),
+        Point::new(5.0, 0.0),
+    ];
+
+    const EDGES: [PrePlanarEdge<u64>; 6] = [
+        PrePlanarEdge::new(0, 1, 0),
+        PrePlanarEdge::new(0, 2, 0),
+        PrePlanarEdge::new(0, 3, 0),
+        PrePlanarEdge::new(1, 2, 0),
+        PrePlanarEdge::new(1, 3, 0),
+        PrePlanarEdge::new(2, 3, 0),
+    ];
+
+    fn assert_intersect(points: &Vec<Point>, expected: bool, i: usize, j: usize) {
+        let ab = &EDGES[i];
+        let cd = &EDGES[j];
+        assert_eq!(expected, intersect(points, ab, cd), "{:?} x {:?}", ab, cd);
+    }
+
+    #[test]
+    fn test_intersection() {
+        let points = Vec::from(POINTS);
+        assert_intersect(&points, false,0, 1);
+        assert_intersect(&points, false,0, 2);
+        assert_intersect(&points, false,1, 3);
+        assert_intersect(&points, false,0, 5);
+
+        assert_intersect(&points, true, 2, 3);
     }
 }

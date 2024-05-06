@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::cmp::Ordering::{Equal, Greater, Less};
-use std::ops::Neg;
-use std::str::FromStr;
+use std::ops::{Add, Neg, Sub};
 use num::Complex;
 use crate::structure::graph::planar_edge::PrePlanarEdge;
 use crate::structure::weight::Weight;
@@ -18,6 +17,25 @@ impl Point {
             x,
             y
         }
+    }
+    pub fn cross(&self, other: &Self) -> f64 {
+        self.x * other.y - self.y * other.x
+    }
+}
+
+impl Add for Point {
+    type Output = Point;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Point::new(self.x + rhs.x, self.y + rhs.y)
+    }
+}
+
+impl Sub for Point {
+    type Output = Point;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Point::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
 

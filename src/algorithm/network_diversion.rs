@@ -27,8 +27,11 @@ pub fn network_diversion<W: Weight>(planar: &PlanarGraph<W>, s: usize, t: usize,
             Possible {cost, path} => {
                 let mapped: Vec<PlanarEdge<W>> = path.iter().flat_map(|e| map(e)).collect();
                 let rotated: Vec<PlanarEdge<W>> = mapped.iter().map(|e| e.rotate_right()).collect();
-                println!("Dual diversion set: {:?}", mapped);
-                println!("Real diversion set: {:?}\n", rotated);
+                println!("We have to cut {} edges to divert the network, with a total cost of {}.", path.len(), cost);
+                if path.len() < 15 {
+                    println!("Dual diversion set: {:?}", mapped);
+                    println!("Real diversion set: {:?}\n", rotated);
+                }
 
                 Some((
                     cost,

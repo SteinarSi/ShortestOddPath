@@ -52,29 +52,33 @@ pub fn bfs<W,E>(graph: &UndirectedGraph<W,E>, s: usize) -> Vec<Cost<u64>>
 }
 
 #[cfg(test)]
-mod find_worst_pairs {
+mod find_worst_diversions {
     use crate::structure::graph::edge::BasicEdge;
     use crate::structure::graph::planar_edge::PlanarEdge;
     use crate::structure::graph::planar_graph::PlanarGraph;
     use super::*;
 
     /** Utility to find worst-case tests for each graph, for benchmarking purposes */
-    fn find_worst<W: Weight, E: Edge<W>>(graph: UndirectedGraph<W,E>) {
-        println!("Done parsing");
+    fn find_worst<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>) {
         let s = 0;
         let dists = bfs(&graph, s);
-        let (cost, t) = (0..graph.n())
-            .map(|u| (dists[u], u))
-            .filter(|(d,_)| d.is_finite())
-            .max()
-            .unwrap();
-        let seen: u64 = dists.iter()
+        let (cost, t) = Cost::sup_index(&dists).unwrap();
+        let seen = dists
+            .iter()
             .filter(|c| c.is_finite())
-            .map(|_| 1)
-            .sum();
-        println!("Distances: {:?}", dists);
+            .count();
         println!("Starting from {}, we can reach {} / {} vertices in the graph", s, seen, graph.n());
-        println!("The worst vertex to find from s = {} is {}, with a distance of {:?}.", s, t, cost)
+        println!("The worst vertex to find from s = {} is {}, with a distance of {:?}.", s, t, cost);
+
+        println!("\nSuggested diversions: ");
+        for c in [ cost / 3, cost / 2, cost * 2 / 3 ] {
+            let du = dists.iter()
+                .position(|u| *u == Finite(c))
+                .unwrap();
+            let dv = graph[du][0].to();
+            println!("{} {} {} {}", s, t, du, dv);
+        }
+        println!();
     }
     fn read_normal<W: Weight>(path: &str) -> UndirectedGraph<W, BasicEdge<W>> {
         std::fs::read_to_string(path)
@@ -90,9 +94,11 @@ mod find_worst_pairs {
             .real()
             .clone()
     }
+    #[ignore]
     #[test]
     fn find_worst_case_pair() {
-        find_worst(read_normal::<f64>("data/real_graphs/CityOfOldenburg.in"));
-        find_worst(read_planar::<f64>("data/planar_graphs/real_planar_graphs/CityOfOldenburg/CityOfOldenburg.in"));
+        // find_worst(&read_planar::<f64>("data/planar_graphs/real_planar_graphs/CityOfOldenburg/CityOfOldenburg.in"));
+        // find_worst(&read_planar::<f64>("data/planar_graphs/real_planar_graphs/CityOfSanJoaquinCounty/CityOfSanJoaquinCounty.in"));
+        find_worst(&read_planar::<f64>("data/planar_graphs/real_planar_graphs/CaliforniaRoadNetwork/CaliforniaRoadNetwork.in"));
     }
 }

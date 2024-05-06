@@ -18,3 +18,7 @@ harness = false
 [[bench]]
 name = "bench_odd_path"
 harness = false
+
+[[bench]]
+name = "bench_network_diversion"
+harness = false

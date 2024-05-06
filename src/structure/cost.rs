@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::cmp::Ordering::Equal;
+use std::cmp::Ordering::{Equal, Less, Greater};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Sub};
 use std::str::FromStr;
@@ -34,14 +34,29 @@ impl <W: Weight> Cost<W> {
             Infinite => panic!("{}", msg),
         }
     }
+
+    pub fn sup(xs: &Vec<Cost<W>>) -> Option<W> {
+        xs.iter()
+            .filter(|c| c.is_finite())
+            .max()
+            .map(|c| c.unwrap())
+    }
+
+    pub fn sup_index(xs: &Vec<Cost<W>>) -> Option<(W, usize)> {
+        (0..xs.len())
+            .filter(|i| xs[*i].is_finite())
+            .map(|i| (xs[i], i))
+            .max()
+            .map(|(c,i)| (c.unwrap(), i))
+    }
 }
 
 impl <W: Weight> PartialOrd for Cost<W> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
-            (Infinite, Infinite) => Some(Ordering::Equal),
-            (Infinite, Finite(_)) => Some(Ordering::Greater),
-            (Finite(_), Infinite) => Some(Ordering::Less),
+            (Infinite, Infinite) => Some(Equal),
+            (Infinite, Finite(_)) => Some(Greater),
+            (Finite(_), Infinite) => Some(Less),
             (Finite(a), Finite(b)) => a.partial_cmp(b),
         }
     }
@@ -72,6 +87,15 @@ impl <W: Weight> Sub for Cost<W> {
         match (self, rhs) {
             (Finite(a), Finite(b)) => Finite(a-b),
             _ => Infinite,
+        }
+    }
+}
+
+impl <W: Weight> Into<Option<W>> for Cost<W> {
+    fn into(self) -> Option<W> {
+        match self {
+            Finite(a) => Some(a),
+            Infinite => None,
         }
     }
 }

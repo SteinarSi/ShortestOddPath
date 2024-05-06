@@ -10,8 +10,9 @@ def reformat(vertices, edges, output):
         for _, u, v, w in map(lambda l: l.split(), es):
             out.write(f'{u} {v} {w}\n')
 
+name = "CaliforniaRoadNetwork"
 reformat(
-    "planar_graphs/CityOfOldenburg/verticestemp",
-    "planar_graphs/CityOfOldenburg/edgestemp",
-    "planar_graphs/CityOfOldenburg/CityOfOldenburg.in"
+    f"planar_graphs/real_planar_graphs/{name}/nodes",
+    f"planar_graphs/real_planar_graphs/{name}/edges",
+    f"planar_graphs/real_planar_graphs/{name}/{name}.in"
 )

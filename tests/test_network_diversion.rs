@@ -15,8 +15,8 @@ impl <W> Problem<W> for NetworkDiversion
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
 {
-    type Output = (W, Vec<PlanarEdge<W>>);
-    type Query = (usize,usize,(usize,usize),W);
+    type Output = Option<(W, Vec<PlanarEdge<W>>)>;
+    type Query = (usize,usize,(usize,usize),Option<W>);
     type GraphClass = PlanarGraph<W>;
 
     fn name() -> String {
@@ -29,7 +29,7 @@ impl <W> Problem<W> for NetworkDiversion
             words.next()?.parse().ok()?,
             words.next()?.parse().ok()?,
             (words.next()?.parse().ok()?, words.next()?.parse().ok()?),
-            words.next()?.parse().ok()?
+            words.next()?.parse().ok()
         ))
     }
 
@@ -37,17 +37,22 @@ impl <W> Problem<W> for NetworkDiversion
         format!("Network Diversion from {} to {}, every path must go through ({},{}):", s,t,u,v)
     }
 
-    fn verify_answer(planar: &Self::GraphClass, &(s,t,(du,dv),expected): &Self::Query, (cost, diversion): &Self::Output) {
-        assert_eq!(expected, *cost);
-        let mut g = planar.real().clone();
-        let mut bottleneck = g.find_edges(du, dv);
-        g.delete_edges(diversion);
-        let dist_before = bfs(&g, s);
-        assert!(dist_before[t].is_finite());
-        bottleneck.extend(diversion.clone());
-        g.delete_edges(&bottleneck);
-        let dist_after = bfs(&g, s);
-        assert!(dist_after[t].is_infinite());
+    fn verify_answer(planar: &Self::GraphClass, &(s,t,(du,dv),expected): &Self::Query, out: &Self::Output) {
+        if let Some((cost, diversion)) = out {
+            assert_eq!(expected, Some(*cost));
+            let mut g = planar.real().clone();
+            let mut bottleneck = g.find_edges(du, dv);
+            g.delete_edges(diversion);
+            let dist_before = bfs(&g, s);
+            assert!(dist_before[t].is_finite());
+            bottleneck.extend(diversion.clone());
+            g.delete_edges(&bottleneck);
+            let dist_after = bfs(&g, s);
+            assert!(dist_after[t].is_infinite());
+        }
+        else {
+            assert!(expected.is_none())
+        }
     }
 
     fn compute(graph: &Self::GraphClass, &(s,t,(u,v),_): &Self::Query) -> Self::Output {
@@ -68,4 +73,8 @@ mod small_planar {
     fn small_planar1() { test_diversion("small_planar1"); }
     #[test]
     fn small_planar2() { test_diversion("small_planar2"); }
+    #[test]
+    fn small_planar3() { test_diversion("small_planar3"); }
+    #[test]
+    fn small_planar4() { test_diversion("small_planar4"); }
 }

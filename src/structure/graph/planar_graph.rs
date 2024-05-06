@@ -36,7 +36,11 @@ impl <W: Weight> PlanarGraph<W> {
         let mut pre = PrePlanarGraph::empty(n);
 
         for _ in 0..n {
-            pre.add_vertex(ls.next().ok_or("Expected another vertex here, but got nothing")?.parse()?);
+            let mut ws = ls.next().ok_or("Expected another vertex here, but got nothing")?.split(' ');
+            let id = ws.next().ok_or("Could not find the id")?.parse().or(Err("Could not parse the id"))?;
+            let x = ws.next().ok_or("Could not find the x coordinate")?.parse().or(Err("Could not parse the x coordinate"))?;
+            let y = ws.next().ok_or("Could not find the y coordinate")?.parse().or(Err("Could not parse the y coordinate"))?;
+            pre.add_vertex(id, Point::new(x, y));
         }
         for _ in 0..m {
             pre.add_edge::<S>(ls.next().ok_or("Expected another edge here, but got nothing")?.parse()?);
@@ -57,8 +61,7 @@ impl <W: Weight> PrePlanarGraph<W> {
             points: repeat(n, None),
         }
     }
-    pub fn add_vertex(&mut self, u: Point) {
-        let i = u.id;
+    pub fn add_vertex(&mut self, i: usize, u: Point) {
         self.points[i] = Some(u);
     }
 
@@ -87,7 +90,7 @@ impl <W: Weight> PrePlanarGraph<W> {
             points.push(p.clone().ok_or("Not all points have been defined")?);
         }
         self.sort_edges(&points);
-        let f = self.determine_faces(&points)?;
+        let f = self.determine_faces()?;
 
         let mut real = UndirectedGraph::new(self.graph.n());
         let mut dual = UndirectedGraph::new(f);
@@ -114,7 +117,7 @@ impl <W: Weight> PrePlanarGraph<W> {
                 .sort_by(compare_edges_clockwise(&points[u], &points));
         }
     }
-    fn determine_faces(&mut self, points: &Vec<Point>) -> Result<usize, &'static str> {
+    fn determine_faces(&mut self) -> Result<usize, &'static str> {
         let n = self.graph.n();
         let adj_list = &mut self.graph.adj_list;
         let adj_list_copy = adj_list.clone();
@@ -142,8 +145,8 @@ impl <W: Weight> PrePlanarGraph<W> {
             }
         }
 
-        for u in points {
-            for e in &adj_list[u.id] {
+        for u in 0..n {
+            for e in &adj_list[u] {
                 if e.left.is_none() || e.right.is_none() {
                     return Err("Not all edges found both a left and right region!");
                 }

@@ -8,20 +8,16 @@ use crate::structure::weight::Weight;
 
 #[derive(PartialEq, Clone)]
 pub struct Point {
-    pub id: usize,
     pub x: f64,
     pub y: f64,
 }
 
-impl FromStr for Point {
-    type Err = &'static str;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut ws = s.split(' ');
-        Ok(Point {
-            id: ws.next().ok_or("Could not find the id")?.parse().or(Err("Could not parse the id"))?,
-            x: ws.next().ok_or("Could not find the x coordinate")?.parse().or(Err("Could not parse the x coordinate"))?,
-            y: ws.next().ok_or("Could not find the y coordinate")?.parse().or(Err("Could not parse the y coordinate"))?,
-        })
+impl Point {
+    pub fn new(x: f64, y: f64) -> Self {
+        Point {
+            x,
+            y
+        }
     }
 }
 
@@ -43,13 +39,6 @@ fn angle_from_center(center: &Point, other: &Point) -> f64 {
 mod test_points {
     use crate::structure::graph::edge::map_to;
     use super::*;
-    fn new_point(x: i32, y: i32) -> Point {
-        Point {
-            id: 0,
-            x: x.into(),
-            y: y.into(),
-        }
-    }
     fn new_edge(u:usize, v: usize) -> PrePlanarEdge<u64> {
         PrePlanarEdge {
             from: u,
@@ -62,15 +51,15 @@ mod test_points {
     #[test]
     fn test_sorting() {
         let points = vec![
-            new_point(0, 0),
-            new_point(10, -1),
-            new_point(2, 7),
-            new_point(12, 6),
-            new_point(5, 3),
-            new_point(7, 10),
-            new_point(10, 3),
-            new_point(0, 4),
-            new_point(4, -2),
+            Point::new(0.0, 0.0),
+            Point::new(10.0, -1.0),
+            Point::new(2.0, 7.0),
+            Point::new(12.0, 6.0),
+            Point::new(5.0, 3.0),
+            Point::new(7.0, 10.0),
+            Point::new(10.0, 3.0),
+            Point::new(0.0, 4.0),
+            Point::new(4.0, -2.0),
         ];
         let mut edges = vec![
             new_edge(4, 3),

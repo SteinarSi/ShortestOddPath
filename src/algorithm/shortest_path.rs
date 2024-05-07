@@ -99,6 +99,8 @@ mod find_worst_diversions {
     fn find_worst_case_pair() {
         // find_worst(&read_planar::<f64>("data/planar_graphs/real_planar_graphs/CityOfOldenburg/CityOfOldenburg.in"));
         // find_worst(&read_planar::<f64>("data/planar_graphs/real_planar_graphs/CityOfSanJoaquinCounty/CityOfSanJoaquinCounty.in"));
-        find_worst(&read_planar::<f64>("data/planar_graphs/real_planar_graphs/CaliforniaRoadNetwork/CaliforniaRoadNetwork.in"));
+        // find_worst(&read_planar::<f64>("data/planar_graphs/real_planar_graphs/CaliforniaRoadNetwork/CaliforniaRoadNetwork.in"));
+        // find_worst(&read_planar::<f64>("data/planar_graphs/real_planar_graphs/SanFranciscoRoadNetwork/SanFranciscoRoadNetwork.in"));
+        find_worst(&read_planar::<f64>("data/planar_graphs/real_planar_graphs/RoadNetworkOfNorthAmerica/RoadNetworkOfNorthAmerica.in"));
     }
 }

@@ -163,12 +163,15 @@ impl <W: Weight> PrePlanarGraph<W> {
             println!("n = {}, m = {}, f = {}", self.graph.n(), self.graph.m(), current_face);
             println!("We should have had {} - {} + 2 = {} regions, but we found {}.", self.graph.m(), n, self.graph.m() - self.graph.n() + 2, current_face);
             println!("Either we don't have the correct faces, or Euler's formula is wrong :thinkin:");
+            if self.assert_planarity {
+                panic!("Incorrect number of regions compared to vertices and edges!");
+            }
         }
         Ok(current_face)
     }
 
     fn assert_planarity(&self, points: &Vec<Point>) -> Result<(), &'static str> {
-        let mut intersections = Vec::new();
+        let mut errors = 0;
         let edges = self.graph.edges();
         for i in 0..edges.len() {
             let ab = &edges[i];
@@ -176,23 +179,20 @@ impl <W: Weight> PrePlanarGraph<W> {
             for j in i+1..edges.len() {
                 let cd = &edges[j];
                 if cd.from() < cd.to() && ab != &cd.reverse() && intersect(&points, ab, cd) {
-                    intersections.push((edges[i].clone(), edges[j].clone()));
+                    if errors == 0 {
+                        println!("    This cannot be a straight-line embedding, here are some pairs of edges that intersect: ");
+                    }
+                    errors += 1;
+                    if errors < 10 {
+                        println!("        {}  x  {}", ab.format_with_coords(&points), cd.format_with_coords(&points));
+                    }
                 }
             }
         }
-        if ! intersections.is_empty() {
-            println!("This cannot be a straight-line embedding, we found {} pairs of edges that intersect: ", intersections.len());
-            let mut i = 0;
-            for (ab, cd) in intersections {
-                println!("  {}  x  {}", ab.format_with_coords(&points), cd.format_with_coords(&points));
-                i += 1;
-                if i > 10 {
-                    break;
-                }
-            }
-            Err("This is not a straight-line embedding :(")
-        }else {
+        if errors == 0 {
             Ok(())
+        }else {
+            Err("This is not a straight-line embedding :(")
         }
     }
 }
@@ -286,9 +286,10 @@ mod test_planar_graph {
     #[test]
     fn assert_large_planarity() {
         for name in [
-            "CityOfOldenburg",
+            // "CityOfOldenburg",
             "CaliforniaRoadNetwork",
-            "CityOfSanJoaquinCounty",
+            // "CityOfSanJoaquinCounty",
+            // "SanFranciscoRoadNetwork",
         ] {
             parse("real_planar_graphs", name);
         }

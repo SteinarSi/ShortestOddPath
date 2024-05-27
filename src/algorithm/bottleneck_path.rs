@@ -16,17 +16,13 @@ pub fn shortest_bottleneck_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W
     let (split, map) = split_edges(&graph, bottleneck);
     match shortest_odd_path(&split, s, t) {
         Impossible => Impossible,
-        Possible {cost: _, path} => {
-            let ret: Vec<E> = path.iter().flat_map(|e|map(e)).collect();
-
-            // TODO trenger jo egentlig ikke denne løkken, kan bruke cost fra odd_path
-            let mut cost = 0.into();
-            for e in &ret {
-                cost = cost + e.weight();
-            }
+        Possible {cost, path} => {
             Possible {
                 cost,
-                path: ret,
+                path: path
+                    .iter()
+                    .flat_map(|e|map(e))
+                    .collect(),
             }
         },
     }

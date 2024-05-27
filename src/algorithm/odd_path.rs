@@ -152,7 +152,7 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
 
             else if let (Finite(dist_v), true) = (self.d_plus[v], ! self.basis.same_base(u, v)) {
                 debug(format!("        Found candidate for blossom: ({}, {}), with delta = {}", u, v, dist_u + dist_v + w));
-                self.pq.push(Reverse(Blossom(dist_v + dist_v + w, e.clone())));
+                self.pq.push(Reverse(Blossom(dist_u + dist_v + w, e.clone())));
                 if Finite(new_dist_v) < self.d_minus[v] {
                     debug(format!("        d_minus[{}] = {}", v, new_dist_v));
                     debug(format!("        pred[{}] = {}", v, u));

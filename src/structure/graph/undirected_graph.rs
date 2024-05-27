@@ -116,7 +116,7 @@ impl <W,E> Debug for UndirectedGraph<W,E>
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut ret = String::new();
         ret.push_str(format!("UndirectedGraph(n = {}, m = {}):\n", self.n, self.m).as_str());
-        for u in self.vertices() {
+        for u in self.vertices().take(15) {
             ret.push_str(format!("  N({}) = {:?}\n", u, self[&u]).as_str());
         }
         write!(f, "{}", ret)

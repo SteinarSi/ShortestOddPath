@@ -65,7 +65,7 @@ impl <W: Weight> Edge<W> for BasicEdge<W> {
             BasicEdge {
                 from: self.from,
                 to: middle,
-                weight: 0.into(),
+                weight: self.weight,
             },
             BasicEdge {
                 from: middle,

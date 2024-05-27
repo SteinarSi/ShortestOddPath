@@ -17,7 +17,6 @@ fn bench_network_diversion(c: &mut Criterion) {
         let (graph, queries) = parse_bench(input);
         for (i, (s,t,(du,dv))) in queries.iter().enumerate() {
             group.bench_function(BenchmarkId::from_parameter([input, "query #", i.to_string().as_str()].concat()), |b| {
-                println!();
                 b.iter(|| network_diversion(&graph, *s, *t, (*du,*dv)));
             });
         }

@@ -182,10 +182,10 @@ impl <W: Weight> PrePlanarGraph<W> {
                     if errors == 0 {
                         println!("    This cannot be a straight-line embedding, here are some pairs of edges that intersect: ");
                     }
-                    errors += 1;
                     if errors < 10 {
                         println!("        {}  x  {}", ab.format_with_coords(&points), cd.format_with_coords(&points));
                     }
+                    errors += 1;
                 }
             }
         }

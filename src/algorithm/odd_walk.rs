@@ -1,11 +1,12 @@
+use std::cmp::Reverse;
 use crate::structure::{
     graph::undirected_graph::UndirectedGraph,
     cost::{Cost, Cost::*},
     path_result::{PathResult, PathResult::*},
 };
-use std::collections::VecDeque;
+use std::collections::BinaryHeap;
 use crate::structure::graph::edge::Edge;
-use crate::structure::weight::Weight;
+use crate::structure::weight::{Order, Weight};
 use crate::utility::misc::repeat;
 
 /**
@@ -19,30 +20,33 @@ pub fn shortest_odd_walk<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s:
     let mut even_dist: Vec<Cost<W>> = repeat(n, Infinite);
     let mut odd_dist = repeat(n, Infinite);
     even_dist[s] = Finite(0.into());
-    let mut queue: VecDeque<(usize, bool)> = VecDeque::from([(s, true)]);
+    let mut queue: BinaryHeap<(Reverse<Order<W>>, bool, usize)> = BinaryHeap::from([(Reverse(Order(0.into())), true, s)]);
     let mut even_prev: Vec<Option<&E>> = repeat(n, None);
     let mut odd_prev: Vec<Option<&E>> = repeat(n, None);
+    let mut even_done: Vec<bool> = repeat(n, false);
+    let mut odd_done: Vec<bool> = repeat(n, false);
 
-    while ! queue.is_empty() {
-        let (u, even) = queue.pop_front().unwrap();
+    while let Some((Reverse(Order(dist_u)), even, u)) = queue.pop() {
         if even {
-            let distu = even_dist[u];
+            if even_done[u] { continue }
+            even_done[u] = true;
             for e in &graph[&u] {
-                let distv = distu + Finite(e.weight());
-                if distv < odd_dist[e.to()] {
-                    odd_dist[e.to()] = distv;
-                    queue.push_back((e.to(), false));
+                let dist_v = dist_u + e.weight();
+                if Finite(dist_v) < odd_dist[e.to()] {
+                    odd_dist[e.to()] = Finite(dist_v);
+                    queue.push((Reverse(Order(dist_v)), false, e.to()));
                     odd_prev[e.to()] = Some(e);
                 }
             }
         }
         else {
-            let distu = odd_dist[u];
+            if odd_done[u] { continue }
+            odd_done[u] = true;
             for e in &graph[&u] {
-                let distv = distu + Finite(e.weight());
-                if distv < even_dist[e.to()] {
-                    even_dist[e.to()] = distv;
-                    queue.push_back((e.to(), true));
+                let dist_v = dist_u + e.weight();
+                if Finite(dist_v) < even_dist[e.to()] {
+                    even_dist[e.to()] = Finite(dist_v);
+                    queue.push((Reverse(Order(dist_v)), true, e.to()));
                     even_prev[e.to()] = Some(e);
                 }
             }

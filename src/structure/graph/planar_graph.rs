@@ -6,7 +6,7 @@ use crate::structure::graph::point::{compare_edges_clockwise, Point};
 use crate::structure::graph::simple_graph_strategy::{SimpleGraphStrategy, SumWeights};
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
-use crate::utility::misc::repeat;
+use crate::utility::misc::{debug, repeat};
 
 pub struct PlanarGraph<W: Weight> {
     real: UndirectedGraph<W, PlanarEdge<W>>,
@@ -160,9 +160,9 @@ impl <W: Weight> PrePlanarGraph<W> {
             }
         }
         if self.graph.m() > n + current_face || n + current_face - self.graph.m() != 2 {
-            println!("n = {}, m = {}, f = {}", self.graph.n(), self.graph.m(), current_face);
-            println!("We should have had {} - {} + 2 = {} regions, but we found {}.", self.graph.m(), n, self.graph.m() - self.graph.n() + 2, current_face);
-            println!("Either we don't have the correct faces, or Euler's formula is wrong :thinkin:");
+            debug(format!("n = {}, m = {}, f = {}", self.graph.n(), self.graph.m(), current_face));
+            debug(format!("We should have had {} - {} + 2 = {} regions, but we found {}.", self.graph.m(), n, self.graph.m() - self.graph.n() + 2, current_face));
+            debug(format!("Either we don't have the correct faces, or Euler's formula is wrong :thinkin:"));
             if self.assert_planarity {
                 panic!("Incorrect number of regions compared to vertices and edges!");
             }
@@ -180,10 +180,10 @@ impl <W: Weight> PrePlanarGraph<W> {
                 let cd = &edges[j];
                 if cd.from() < cd.to() && ab != &cd.reverse() && intersect(&points, ab, cd) {
                     if errors == 0 {
-                        println!("    This cannot be a straight-line embedding, here are some pairs of edges that intersect: ");
+                        debug("    This cannot be a straight-line embedding, here are some pairs of edges that intersect: ".to_string());
                     }
                     if errors < 10 {
-                        println!("        {}  x  {}", ab.format_with_coords(&points), cd.format_with_coords(&points));
+                        debug(format!("        {}  x  {}", ab.format_with_coords(&points), cd.format_with_coords(&points)));
                     }
                     errors += 1;
                 }
@@ -219,9 +219,10 @@ mod test_planar_graph {
     use std::fs::read_to_string;
     use crate::structure::graph::planar_graph::PlanarGraph;
     use crate::structure::graph::simple_graph_strategy::SumWeights;
+    use crate::utility::misc::debug;
 
     fn parse(folder: &str, name: &str) -> PlanarGraph<f64> {
-        println!("Attempting to parse {}...", name);
+        debug(format!("Attempting to parse {}...", name));
         let input = read_to_string(["data/planar_graphs/", folder, "/", name, "/", name, ".in"].concat())
             .expect("No graph found");
         PlanarGraph::parse::<SumWeights>(&input, true)
@@ -243,8 +244,6 @@ mod test_planar_graph {
         assert!( ! planar.dual().is_adjacent(2, 6));
         assert!( ! planar.dual().is_adjacent(1, 5));
         assert!( ! planar.dual().is_adjacent(2, 6));
-
-        println!("{:?}", planar);
     }
 
     #[test]
@@ -267,8 +266,6 @@ mod test_planar_graph {
         assert!( ! planar.dual().is_adjacent(5, 3));
         assert!( ! planar.dual().is_adjacent(5, 0));
         assert!( ! planar.dual().is_adjacent(5, 5));
-
-        println!("{:?}", planar);
     }
 
     #[test]

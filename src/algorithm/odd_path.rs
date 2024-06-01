@@ -5,7 +5,7 @@ use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::utility::misc::{debug, repeat};
 use std::collections::{BinaryHeap};
 use crate::algorithm::utility;
-use crate::structure::base::Base;
+use crate::structure::basis::{Basis, UnionFindBase};
 use crate::structure::graph::edge::{Edge};
 use crate::structure::todo::{Todo, Todo::*};
 use crate::structure::weight::{Weight};
@@ -15,7 +15,7 @@ pub struct DerigsAlgorithm<W: Weight, E: Edge<W>> {
     d_plus: Vec<Cost<W>>,
     d_minus: Vec<Cost<W>>,
     pred: Vec<Option<E>>,
-    basis: Base,
+    basis: UnionFindBase,
     s: usize,
     t: usize,
     orig_n: usize,
@@ -61,7 +61,7 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
             d_plus,
             d_minus,
             pred,
-            basis: Base::new(n),
+            basis: UnionFindBase::new(n),
             s,
             t,
             orig_n: graph.n(),
@@ -233,8 +233,8 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
         for e in path {
             let u = e.from();
             let m = self.mirror(u);
-            self.basis[u] = b;
-            self.basis[m] = b;
+            self.basis.set_base(u, b);
+            self.basis.set_base(m, b);
         }
     }
 

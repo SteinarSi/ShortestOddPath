@@ -3,4 +3,4 @@ pub mod path_result;
 pub mod weight;
 pub mod todo;
 pub mod graph;
-pub mod base;
+pub mod basis;

@@ -6,18 +6,24 @@ use shortest_odd_path::structure::path_result::PathResult;
 
 pub fn bench_trips(c: &mut Criterion, groupname: &str, alg: fn(&UndirectedGraph<u64, BasicEdge<u64>>, usize, usize) -> PathResult<u64, BasicEdge<u64>>) {
     let mut group: BenchmarkGroup<WallTime> = c.benchmark_group(groupname);
-    group.sample_size(10);
+    group.sample_size(20);
     let inputs = [
-        // "power-494-bus.mtx",       // n = 495
-        // "power-1138-bus.mtx",      // n = 1138
-        // "power-bcspwr09.mtx",      // n = 1723
-        // "web-EPA.mtx",             // n = 4271
-        // "power-bcspwr10.mtx",      // n = 5300
-        // "fb-pages-government.mtx", // n = 7057
-        // "COX2-MD.mtx",             // n = 7963
-        // "COX2.mtx",                // n = 19239
-        // "RoadNetworkOfNorthAmerica.in",
-        "CityOfOldenburg.in",      // n = 7035
+        // "power-494-bus.mtx",           // n = 495
+        // "power-1138-bus.mtx",          // n = 1138
+        // "power-bcspwr09.mtx",          // n = 1723
+        // "web-EPA.mtx",                 // n = 4271
+        // "power-bcspwr10.mtx",          // n = 5300
+        "CityOfOldenburg.in",          // n = 6105, m = 7035
+        // "fb-pages-government.mtx",     // n = 7057
+        // "twitch.in",                   // n = 7126
+        // "COX2-MD.mtx",                 // n = 7963
+        "CityOfSanJoaquinCounty.in",   // n = 18263
+        // "COX2.mtx",                    // n = 19239
+        "CaliforniaRoadNetwork.in",    // n = 21048, m = 21693
+        "musae-github.in",             // n = 37700
+        "SanFranciscoRoadNetwork.in",  // n = 174956, m = 223001
+        // "NorthAmericaRoadNetwork.in",  // n = 175813
+        "soc-pokec-relationships.in",  // n = 1632804, m = 30622565
     ];
     for input in inputs {
         let (graph, s, t) = read_input(&["data/real_graphs/", input].concat());

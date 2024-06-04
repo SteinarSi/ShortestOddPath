@@ -12,27 +12,32 @@ def visualize(directory, level=0):
         elif os.path.isfile(p) and (p.endswith('.in') or p.endswith('.mtx')):
             try:
                 print(" " * level + item + ":")
-                g = read_graph(p)
+                g, pos = read_graph(p)
                 if g is None:
-                    print(" " * (level+2) + "Graph to large, skipping.")
+                    print(" " * (level+2) + "Graph too large, skipping.")
                 else:
                     print(" " * (level+2) + "Plotting....")
-                    plot_graph(g, p[:-3] + '.png')
+                    plot_graph(g, pos, p[:-3] + '.png')
                     print(" " * (level+2) + "Done!")
             except IOError:
-                print(f"Could not read '{p}' :-(")
+                print(f"{" " * (level+2)}Could not read '{p}' :-(")
 
 def read_graph(path):
     with open(path, 'r') as f:
-        lines = [line for line in f.readlines() if not line.startswith("%")]
-        n = int(lines[0].split()[0])
+        lines = [[read(u) for u in line.split()] for line in f.readlines() if not line.startswith("%")]
+        n = lines[0][0]
         if n >= 100:
-            return None
+            return None, None
         if 'planar' in path:
-            lines = lines[n:]
+            pos = {}
+            for i, x, y in lines[1:n+1]:
+                pos[i] = (x, y)
+            edges = lines[n+1:]
+        else:
+            edges = lines[1:]
+            pos = None
         g = nx.Graph()
-        for uv in ([read(u) for u in uv.split()] for uv in lines[1:]):
-            print("reading", uv)
+        for uv in edges:
             if len(uv) == 2:
                 u, v = uv
                 g.add_edge(u, v)
@@ -42,14 +47,14 @@ def read_graph(path):
             else:
                 print(uv)
                 raise IOError("Could not read the graph :-(")
-        return g
+        return g, pos
 
 def read(x):
     a = float(x)
     return round(a) if round(a) == a else a
 
-def plot_graph(g: nx.Graph, filename=None):
-    pos = nx.spring_layout(g, seed=69)
+def plot_graph(g: nx.Graph, pos=None, filename=None):
+    pos = pos if pos is not None else nx.spring_layout(g, seed=69)
     nx.draw(g, pos=pos, with_labels=True)
     nx.draw_networkx_edge_labels(g, pos=pos, edge_labels=nx.get_edge_attributes(g, 'weight'))
     if filename: plt.savefig(filename)

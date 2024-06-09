@@ -21,7 +21,7 @@ pub struct DerigsAlgorithm<W: Weight, E: Edge<W>> {
     orig_n: usize,
     completed: Vec<bool>,
     pq: BinaryHeap<Reverse<Todo<W,E>>>,
-    in_current_cycle: Vec<bool>,
+    in_current_blossom: Vec<bool>,
 }
 
 /**
@@ -67,7 +67,7 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
             orig_n: graph.n(),
             completed,
             pq,
-            in_current_cycle: repeat(n, false),
+            in_current_blossom: repeat(n, false),
         }
     }
 
@@ -114,9 +114,11 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
 
         match self.pq.pop() {
             None => return true, // No odd path exists :(
-            Some(Reverse(Vertex(_, l))) => {
-                if l == self.t { return true; } // Shortest odd path has been found :)
-                self.grow(l);
+            Some(Reverse(Vertex(_, u))) => {
+                if u == self.t { return true; } // Shortest odd path has been found :)
+                let m = self.mirror(u);
+                self.d_plus[m] = self.d_minus[u];
+                self.scan(m);
             }
             Some(Reverse(Blossom(_,e))) => {
                 self.blossom(&e);
@@ -151,12 +153,6 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
         }
     }
 
-    fn grow(&mut self, l: usize) {
-        let k = self.mirror(l);
-        self.d_plus[k] = self.d_minus[l];
-        self.scan(k);
-    }
-
     fn blossom(&mut self, e: &E) {
         let (b, p1, p2) = self.backtrack_blossom(e);
 
@@ -181,50 +177,49 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
         let mut u = self.basis[e.to()];
         let mut v = self.basis[e.from()];
 
-        self.in_current_cycle[u] = true;
-        self.in_current_cycle[v] = true;
+        self.in_current_blossom[u] = true;
+        self.in_current_blossom[v] = true;
 
         loop {
             if u != self.s {
                 u = self.basis[self.mirror(u)];
-                self.in_current_cycle[u] = true;
+                self.in_current_blossom[u] = true;
                 let e = self.pred[u].clone().expect(format!("    Tried to unwrap pred[{}], but it's not defined!", u).as_str());
                 u = self.basis[e.from()];
                 p1.push(e);
 
-                if self.in_current_cycle[u] {
+                if self.in_current_blossom[u] {
                     p1.pop();
-                    self.in_current_cycle[u] = false;
+                    self.in_current_blossom[u] = false;
                     while let Some(e) = p2.last() {
                         let vv = self.basis[e.from()];
-                        self.in_current_cycle[vv] = false;
+                        self.in_current_blossom[vv] = false;
                         p2.pop();
                         if vv == u { break; }
                     }
                     return (u, p1, p2);
                 }
-                self.in_current_cycle[u] = true;
+                self.in_current_blossom[u] = true;
             }
             if v != self.s {
                 v = self.basis[self.mirror(v)];
-                self.in_current_cycle[v] = true;
+                self.in_current_blossom[v] = true;
                 let e = self.pred[v].clone().expect(format!("    Tried to unwrap pred[{}], but it's not defined!", v).as_str());
                 v = self.basis[e.from()];
                 p2.push(e);
 
-                if self.in_current_cycle[v] {
+                if self.in_current_blossom[v] {
                     p2.pop();
-                    self.in_current_cycle[v] = false;
+                    self.in_current_blossom[v] = false;
                     while let Some(e) = p1.last() {
-                        // let uu = self.basis[e.from()];
                         let uu = self.basis[e.from()];
-                        self.in_current_cycle[uu] = false;
+                        self.in_current_blossom[uu] = false;
                         p1.pop();
                         if uu == v { break; }
                     }
                     return (v, p1, p2);
                 }
-                self.in_current_cycle[v] = true;
+                self.in_current_blossom[v] = true;
             }
         }
     }
@@ -244,8 +239,8 @@ impl <W: Weight, E: Edge<W>> DerigsAlgorithm<W, E> {
             let u = e.from();
             let v = e.to();
             let w = e.weight();
-            self.in_current_cycle[u] = false;
-            self.in_current_cycle[v] = false;
+            self.in_current_blossom[u] = false;
+            self.in_current_blossom[v] = false;
 
             // We can set a d_minus
             if self.d_plus[v] + Finite(w) < self.d_minus[u] {

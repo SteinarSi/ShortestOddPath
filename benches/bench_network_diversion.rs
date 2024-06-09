@@ -8,9 +8,9 @@ fn bench_network_diversion(c: &mut Criterion) {
     let mut group: BenchmarkGroup<WallTime> = c.benchmark_group("Bench Network Diversion");
     group.sample_size(10);
     let inputs = [
-        "CityOfOldenburg", // n = 6105
-        "CityOfSanJoaquinCounty", // n = 18263
-        "CaliforniaRoadNetwork", // n = 21048
+        "CityOfOldenburg", // n = 6105, m = 7035
+        // "CityOfSanJoaquinCounty", // n = 18263
+        // "CaliforniaRoadNetwork", // n = 21048
         // "SanFranciscoRoadNetwork", // n = 174956
     ];
     for input in inputs {

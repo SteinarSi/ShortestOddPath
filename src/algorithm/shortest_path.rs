@@ -61,6 +61,7 @@ mod create_worst_queries {
     use super::*;
 
     fn read_normal<W: Weight>(path: &str) -> UndirectedGraph<W, BasicEdge<W>> {
+        println!("Attempted path:\n{}", path);
         std::fs::read_to_string(path)
             .expect("Could not find the graph")
             .parse()
@@ -77,19 +78,35 @@ mod create_worst_queries {
     #[ignore]
     #[test]
     fn find_worst_case_paths_and_diversions() {
-        create_worst_queries("data/planar_graphs/real_planar_graphs/CityOfOldenburg/CityOfOldenburg");
-        create_worst_queries("data/planar_graphs/real_planar_graphs/CityOfSanJoaquinCounty/CityOfSanJoaquinCounty");
-        create_worst_queries("data/planar_graphs/real_planar_graphs/CaliforniaRoadNetwork/CaliforniaRoadNetwork");
-        create_worst_queries("data/planar_graphs/real_planar_graphs/SanFranciscoRoadNetwork/SanFranciscoRoadNetwork");
-        create_worst_queries("data/planar_graphs/real_planar_graphs/RoadNetworkOfNorthAmerica/RoadNetworkOfNorthAmerica");
+        // create_worst_queries("data/planar_graphs/real_planar_graphs/CityOfOldenburg/CityOfOldenburg", true);
+        // create_worst_queries("data/planar_graphs/real_planar_graphs/CityOfSanJoaquinCounty/CityOfSanJoaquinCounty", true);
+        // create_worst_queries("data/planar_graphs/real_planar_graphs/CaliforniaRoadNetwork/CaliforniaRoadNetwork", true);
+        // create_worst_queries("data/planar_graphs/real_planar_graphs/SanFranciscoRoadNetwork/SanFranciscoRoadNetwork", true);
+        // create_worst_queries("data/planar_graphs/real_planar_graphs/RoadNetworkOfNorthAmerica/RoadNetworkOfNorthAmerica", true);
+        // create_worst_queries("data/real_graphs/CaliforniaRoadNetwork/CaliforniaRoadNetwork", false);
+        // create_worst_queries("data/real_graphs/CityOfOldenburg/CityOfOldenburg", false);
+        // create_worst_queries("data/real_graphs/CityOfSanJoaquinCounty/CityOfSanJoaquinCounty", false);
+        // create_worst_queries("data/real_graphs/COX2/COX2", false);
+        // create_worst_queries("data/real_graphs/COX2-MD/COX2-MD", false);
+        // create_worst_queries("data/real_graphs/fb-pages-government/fb-pages-government", false);
+        // create_worst_queries("data/real_graphs/musae-github/musae-github", false);
+        // create_worst_queries("data/real_graphs/NorthAmericaRoadNetwork/NorthAmericaRoadNetwork", false);
+        // create_worst_queries("data/real_graphs/power-494-bus/power-494-bus", false);
+        // create_worst_queries("data/real_graphs/power-1138-bus/power-1138-bus", false);
+        // create_worst_queries("data/real_graphs/power-bcspwr09/power-bcspwr09", false);
+        // create_worst_queries("data/real_graphs/power-bcspwr10/power-bcspwr10", false);
+        // create_worst_queries("data/real_graphs/SanFranciscoRoadNetwork/SanFranciscoRoadNetwork", false);
+        // create_worst_queries("data/real_graphs/soc-pokec-relationships/soc-pokec-relationships", false);
+        // create_worst_queries("data/real_graphs/twitch/twitch", false);
+        // create_worst_queries("data/real_graphs/web-EPA/web-EPA", false);
     }
     
-    fn create_worst_queries(path: &str) {
+    fn create_worst_queries(path: &str, diversions: bool) {
         let input = [path, ".in"].concat();
         let mut diversion = File::create([path, ".diversion"].concat()).unwrap();
         let mut odd_path = File::create([path, ".path"].concat()).unwrap();
-        let graph = read_planar::<f64>(input.as_str());
-
+        // let graph = read_planar::<f64>(input.as_str());
+        let graph = read_normal::<u64>(input.as_str());
         let mut worst_s= 0;
         let mut worst_t = 0;
         let mut worst_c = 0;
@@ -112,14 +129,16 @@ mod create_worst_queries {
         println!("{}:", input);
         println!("Starting from {}, we can reach {} / {} vertices in the graph", worst_s, seen, graph.n());
         println!("The worst vertex to find from s = {} is {}, with a distance of {:?}.", worst_s, worst_t, worst_c);
-        println!("Suggested diversions: ");
-        for c in [ worst_c / 3, worst_c / 2, worst_c * 2 / 3 ] {
-            let du = worst_d.iter()
-                .position(|u| *u == Finite(c))
-                .unwrap();
-            let dv = graph[du][0].to();
-            diversion.write_all(format!("{} {} {} {}\n", worst_s, worst_t, du, dv).as_bytes()).unwrap();
-            println!("{} {} {} {}", worst_s, worst_t, du, dv);
+        if diversions {
+            println!("Suggested diversions: ");
+            for c in [worst_c / 3, worst_c / 2, worst_c * 2 / 3] {
+                let du = worst_d.iter()
+                    .position(|u| *u == Finite(c))
+                    .unwrap();
+                let dv = graph[du][0].to();
+                diversion.write_all(format!("{} {} {} {}\n", worst_s, worst_t, du, dv).as_bytes()).unwrap();
+                println!("{} {} {} {}", worst_s, worst_t, du, dv);
+            }
         }
         println!("Suggested odd path: ");
         odd_path.write_all(format!("{} {}\n", worst_s, worst_t).as_bytes()).unwrap();
@@ -130,8 +149,8 @@ mod create_worst_queries {
     #[test]
     fn create_worst_delaunay_queries() {
         for i in (1000..=100_000).step_by(1000) {
-            let path = format!("data/planar_graphs/delaunay_graphs/delaunay{}/delaunay{}", i, i);
-            create_worst_queries(path.as_str());
+            let path = format!("data/delaunay_graphs/normal_delaunay_graphs/delaunay{}/delaunay{}", i, i);
+            create_worst_queries(path.as_str(), true);
         }
     }
 }

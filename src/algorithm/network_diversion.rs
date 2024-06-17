@@ -78,3 +78,47 @@ fn bfs<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize, 
     }
     None
 }
+
+#[cfg(test)]
+mod visualize_diversions {
+    use std::fs::File;
+    use std::io::Write;
+    use crate::algorithm::network_diversion::{bfs, network_diversion};
+    use crate::structure::graph::edge::Edge;
+    use crate::structure::graph::planar_graph::PlanarGraph;
+
+    fn visualize(folder: &str, file: &str) {
+        let planar: PlanarGraph<f64> = std::fs::read_to_string([folder, "/", file, "/", file, ".in"].concat())
+            .unwrap()
+            .parse()
+            .unwrap();
+        let binding = std::fs::read_to_string([folder, "/", file, "/", file, ".diversion"].concat()).unwrap();
+        let mut query = binding
+            .lines()
+            .next()
+            .unwrap()
+            .split(' ');
+        let s = query.next().unwrap().parse().unwrap();
+        let t = query.next().unwrap().parse().unwrap();
+        let d = (query.next().unwrap().parse().unwrap(), query.next().unwrap().parse().unwrap());
+
+        let (_cost, diversion) = network_diversion(&planar, s, t, d).unwrap();
+        let mut diverted = File::create([folder, "/", file, "/", file, ".diverted"].concat()).unwrap();
+        for edge in diversion.clone() {
+            diverted.write_all(format!("{} {}\n", edge.from(), edge.to()).as_bytes()).unwrap();
+        }
+
+        let mut diverted = planar.real().clone();
+        diverted.delete_edges(&diversion);
+
+        let path = bfs(&diverted, s, t, d);
+        assert!(path.is_none());
+    }
+    
+    #[test]
+    #[ignore = "This is just for visualization purposes, so we can make nice plots for the report :)"]
+    fn visualize_delaunay35() {
+        visualize("data/delaunay_graphs/planar_delaunay_graphs", "delaunay35");
+    }
+}
+

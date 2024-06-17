@@ -1,10 +1,7 @@
 import json
 from subprocess import run, PIPE
 
-output = (run("cargo criterion path --message-format=json", shell=True, stdout=PIPE)
-          .stdout
-          .decode('utf-8')
-          .splitlines())
+output = run("cargo criterion --bench bench_odd_walk --message-format=json", shell=True, stdout=PIPE).stdout.decode('utf-8').splitlines()
 
 sizes = []
 times = []
@@ -23,7 +20,3 @@ for out in output:
 print(f"sizes = {sizes}")
 print(f"times = {times}")
 print(f"units = {units}")
-
-
-# dec = json.loads(test)
-# print(f"Time spent on {dec["id"].split()[-1][6:]}: {min(dec["measured_values"])}{dec["unit"]}")

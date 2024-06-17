@@ -1,9 +1,17 @@
 import networkx as nx                 # pip install networkx scipy
 import matplotlib.pyplot as plt       # pip install matplotlib
 import os
+from re import findall
+
+SIZE_LIMIT = 100
 
 def visualize(directory, level=0):
+    if any(int(n) >= SIZE_LIMIT for n in findall(r'\d+', directory)):
+        print(" " * level + "contains frighteningly large numbers, skipping")
+        return
     items = os.listdir(directory)
+    if any(os.path.join(directory, item).endswith('.png') for item in items):
+        return
     for item in items:
         p = os.path.join(directory, item)
         if os.path.isdir(p):
@@ -26,7 +34,7 @@ def read_graph(path):
     with open(path, 'r') as f:
         lines = [[read(u) for u in line.split()] for line in f.readlines() if not line.startswith("%")]
         n = lines[0][0]
-        if n >= 100:
+        if n >= SIZE_LIMIT:
             return None, None
         if 'planar' in path:
             pos = {}
@@ -43,7 +51,7 @@ def read_graph(path):
                 g.add_edge(u, v)
             elif len(uv) == 3:
                 u, v, w = uv
-                g.add_edge(u, v, weight=w)
+                g.add_edge(u, v, weight=round(w, 1))
             else:
                 print(uv)
                 raise IOError("Could not read the graph :-(")

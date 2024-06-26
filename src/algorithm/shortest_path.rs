@@ -4,8 +4,45 @@ use queues::{IsQueue, Queue};
 use crate::structure::cost::{Cost, Cost::*};
 use crate::structure::graph::edge::Edge;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
+use crate::structure::path_result::PathResult;
+use crate::structure::path_result::PathResult::{Impossible, Possible};
 use crate::structure::weight::{Order, Weight};
 use crate::utility::misc::repeat;
+
+pub fn shortest_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> PathResult<W,E> {
+    let mut dist = repeat(graph.n(), Infinite);
+    let mut done = repeat(graph.n(), false);
+    let mut prev: Vec<Option<E>> = repeat(graph.n(), None);
+    dist[s] = Finite(0.into());
+    let mut pqv: BinaryHeap<(Reverse<Order<W>>, usize)> = BinaryHeap::from([(Reverse(Order(0.into())), s)]);
+    while let Some((Reverse(Order(d)), u)) = pqv.pop() {
+        if ! done[u] {
+            if u == t {
+                let mut path = vec![prev[t].clone().unwrap()];
+                while path.last().unwrap().from() != s {
+                    path.push(prev[path.last().unwrap().from()].clone().unwrap());
+                }
+                path.reverse();
+                return Possible {
+                    path,
+                    cost: dist[t].unwrap(),
+                };
+            }
+            done[u] = true;
+            for e in &graph[&u] {
+                let v = e.to();
+                let dv = d + e.weight();
+                if Finite(dv) < dist[v] {
+                    dist[v] = Finite(dv);
+                    prev[v] = Some(e.clone());
+                    pqv.push((Reverse(Order(dv)), v));
+                }
+            }
+        }
+
+    }
+    return Impossible;
+}
 
 pub fn all_shortest_paths<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize) -> Vec<Cost<W>> {
     let mut dist = repeat(graph.n(), Infinite);
@@ -61,19 +98,23 @@ mod create_worst_queries {
     use super::*;
 
     fn read_normal<W: Weight>(path: &str) -> UndirectedGraph<W, BasicEdge<W>> {
-        println!("Attempted path:\n{}", path);
         std::fs::read_to_string(path)
             .expect("Could not find the graph")
             .parse()
             .expect("Could not parse the graph")
     }
-    fn read_planar<W: Weight>(path: &str) -> UndirectedGraph<W, PlanarEdge<W>> {
-        std::fs::read_to_string(path)
+    fn read_planar<W: Weight>(path: &str) -> UndirectedGraph<W, BasicEdge<W>> {
+        let planar = std::fs::read_to_string(path)
             .expect("Could not find the graph")
             .parse::<PlanarGraph<W>>()
-            .expect("Could not parse the graph")
-            .real()
-            .clone()
+            .expect("Could not parse the graph");
+        let mut normal = UndirectedGraph::new(planar.n());
+        for edge in planar.real().edges() {
+            if edge.from < edge.to {
+                normal.add_edge(BasicEdge::new(edge.from, edge.to, edge.weight));    
+            }
+        }
+        normal
     }
     #[ignore]
     #[test]
@@ -101,12 +142,11 @@ mod create_worst_queries {
         // create_worst_queries("data/real_graphs/web-EPA/web-EPA", false);
     }
     
-    fn create_worst_queries(path: &str, diversions: bool) {
+    fn create_worst_queries(path: &str, diversions: bool, planar: bool) {
         let input = [path, ".in"].concat();
         let mut diversion = File::create([path, ".diversion"].concat()).unwrap();
         let mut odd_path = File::create([path, ".path"].concat()).unwrap();
-        // let graph = read_planar::<f64>(input.as_str());
-        let graph = read_normal::<u64>(input.as_str());
+        let graph = if planar { read_planar(input.as_str()) } else { read_normal::<u64>(input.as_str()) };
         let mut worst_s= 0;
         let mut worst_t = 0;
         let mut worst_c = 0;
@@ -148,9 +188,11 @@ mod create_worst_queries {
     #[ignore]
     #[test]
     fn create_worst_delaunay_queries() {
-        for i in (1000..=100_000).step_by(1000) {
-            let path = format!("data/delaunay_graphs/normal_delaunay_graphs/delaunay{}/delaunay{}", i, i);
-            create_worst_queries(path.as_str(), true);
+        for i in (1000..=200_000).step_by(1000) {
+            let normal = format!("data/delaunay_graphs/normal_delaunay_graphs/delaunay{}/delaunay{}", i, i);
+            create_worst_queries(normal.as_str(), true, false);
+            let planar = format!("data/delaunay_graphs/planar_delaunay_graphs/delaunay{}/delaunay{}", i, i);
+            create_worst_queries(planar.as_str(), true, true);
         }
     }
 }

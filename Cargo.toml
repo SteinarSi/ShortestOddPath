@@ -25,3 +25,7 @@ harness = false
 [[bench]]
 name = "bench_network_diversion"
 harness = false
+
+[[bench]]
+name = "bench_dijkstra"
+harness = false

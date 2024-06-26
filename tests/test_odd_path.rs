@@ -18,36 +18,46 @@ impl <W> Problem<W> for ShortestOddPath
           <W as FromStr>::Err: Debug + Display,
 {
     type Output = PathResult<W,BasicEdge<W>>;
-    type Query = (usize, Cost<W>);
+    type Query = (usize, usize);
+    type Expected = Cost<W>;
     type GraphClass = UndirectedGraph<W,BasicEdge<W>>;
     fn name() -> String { String::from("path") }
-    fn parse_query(query: &str) -> Option<Self::Query> {
+    fn parse_query(query: &str) -> Option<(Self::Query, Option<Self::Expected>)> {
         let mut words = query.split(' ');
+        let source = words.next()?.parse().ok()?;
         let sink = words.next()?.parse().ok()?;
-        let cost = words.next()?.parse().ok()?;
-        Some((sink, cost))
-    }
-    fn display_query((t, _): &Self::Query) -> String {
-        format!("Path from 0 to {}:", t)
-    }
-    fn verify_answer(graph: &Self::GraphClass, query: &Self::Query, actual: &Self::Output) {
-        let (sink, expected) = query;
-        let context = Self::display_query(query);
-        match (expected, actual) {
-            (Infinite, Possible {cost: _, path}) => panic!("{}\nExpected to not find any {}-{}-path, but found one anyway: {:?}", context, 0, sink, path),
-            (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-path of cost {}, but it did not", context, 0, sink, cost),
-            (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
-                assert_eq!(path.len() % 2, 1);
-                verify_path::<W,BasicEdge<W>,Self>(graph, &context, *expected_cost, *actual_cost, path, 0, *sink);
-                for i in 0..path.len()-1 {
-                    assert!(path[i+1..].iter().find(|e| e.to() == path[i].from()).is_none(), "{}\nThis was supposed to be a simple path, but {} was used at least twice!", context, path[i].from());
-                }
-            },
-            _ => {}
+        let cost = if let Some(w) = words.next() {
+            w.parse().ok()
         }
+        else {
+            None
+        };
+        Some(((source,sink), cost))
     }
-    fn compute(graph: &Self::GraphClass, (sink, _): &Self::Query) -> Self::Output {
-        shortest_odd_path(graph, 0, *sink)
+    fn verify_answer(graph: &Self::GraphClass, query: &Self::Query, expected: &Option<Self::Expected>, actual: &Self::Output) {
+        let (source, sink) = query;
+        let context = format!("Odd path from {} to {}:", source, sink);
+        if let Some(exp) = expected {
+            match (exp, actual) {
+                (Infinite, Possible {cost: _, path}) => panic!("{}\nExpected to not find any {}-{}-path, but found one anyway: {:?}", context, 0, sink, path),
+                (Finite(cost), Impossible) => panic!("{}\nExpected the alg to find an {}-{}-path of cost {}, but it did not", context, 0, sink, cost),
+                (Finite(expected_cost), Possible {cost: actual_cost, path}) => {
+                    assert_eq!(expected_cost, actual_cost, "{}\nThe costs don't match: expected {}, but got {}.\nThe offending path: {:?}", context, expected_cost, actual_cost, path);
+                },
+                _ => {}
+            }
+        }
+        if let Possible {cost, path} = actual {
+            assert_eq!(path.len() % 2, 1);
+            verify_path::<W,BasicEdge<W>,Self>(graph, &context, *cost, path, *source, *sink);
+            for i in 0..path.len()-1 {
+                assert!(path[i+1..].iter().find(|e| e.to() == path[i].from()).is_none(), "{}\nThis was supposed to be a simple path, but {} was used at least twice!", context, path[i].from());
+            }
+        }
+
+    }
+    fn compute(graph: &Self::GraphClass, (source, sink): &Self::Query) -> Self::Output {
+        shortest_odd_path(graph, *source, *sink)
     }
 }
 

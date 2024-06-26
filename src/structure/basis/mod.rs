@@ -20,7 +20,6 @@ pub trait Basis: Index<usize> + Debug
 
 #[cfg(test)]
 mod test_base {
-    use std::fmt::Debug;
     use crate::structure::basis::observer_base::ObserverBase;
     use crate::structure::basis::unionfind_base::UnionFindBase;
     use super::*;

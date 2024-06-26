@@ -13,18 +13,17 @@ pub fn meta_test<Pr, W: Weight>(folder: &str, name: &str)
 {
     let input_path = ["data/", folder, "/", name, "/", name, ".in"].concat();
     let query_path = ["data/", folder, "/", name, "/", name, ".", &Pr::name()].concat();
-    let queries: Vec<Pr::Query> = std::fs::read_to_string(&query_path)
+    let queries: Vec<(Pr::Query, Option<Pr::Expected>)> = std::fs::read_to_string(&query_path)
         .expect(&format!("Could not find the queries: {}", query_path))
         .lines()
-        .map(|line| Pr::parse_query(line).expect("Could not parse query :-("))
+        .map(|line| Pr::parse_query(line).expect(format!("Could not parse this query: {}", line).as_str()))
         .collect();
     let graph = std::fs::read_to_string(&input_path)
         .expect(&format!("Could not find graph: {}", input_path))
         .parse()
         .expect("Could not parse the graph");
-    for query in queries {
-        println!("\n{}", Pr::display_query(&query));
-        Pr::verify_answer(&graph, &query, &Pr::compute(&graph, &query));
+    for (query, expected) in queries {
+        Pr::verify_answer(&graph, &query, &expected, &Pr::compute(&graph, &query));
     }
     println!("Success :-)")
 }
@@ -35,24 +34,26 @@ pub trait Problem<W>
 {
     type Output;
     type Query;
+    type Expected;
     type GraphClass;
     fn name() -> String;
-    fn parse_query(query: &str) -> Option<Self::Query>;
-    fn display_query(query: &Self::Query) -> String;
-    fn verify_answer(graph: &Self::GraphClass, expected: &Self::Query, actual: &Self::Output);
+    fn parse_query(query: &str) -> Option<(Self::Query, Option<Self::Expected>)>;
+    fn verify_answer(graph: &Self::GraphClass, query: &Self::Query, expected: &Option<Self::Expected>, actual: &Self::Output);
     fn compute(graph: &Self::GraphClass, query: &Self::Query) -> Self::Output;
 }
 
-pub fn verify_path<'a, W, E, Pr>(graph: &UndirectedGraph<W,E>, context: &String, expected_cost: W, actual_cost: W, path: &Vec<E>, source: usize, sink: usize)
+pub fn verify_path<'a, W, E, Pr>(graph: &UndirectedGraph<W,E>, context: &String, cost: W, path: &Vec<E>, source: usize, sink: usize)
     where W: Weight,
           <W as FromStr>::Err: Debug + Display,
           E: Edge<W>,
           Pr: Problem<W>,
 {
-    assert_eq!(expected_cost, actual_cost, "{}\nThe costs don't match: expected {}, but got {}.\nThe offending path: {:?}", context, expected_cost, actual_cost, path);
     assert_eq!(source, path[0].from(), "{}\nThe path starts at the wrong vertex! Expected {}, but yet it starts at {} for some reason", context, source, path[0].from());
     assert_eq!(sink, path[path.len()-1].to(), "{}\nThe path ends at the wrong vertex! Expected {}, but it ends at {} for some strange reason that you should consider debugging.", context, sink, path[path.len()-1].to());
+    let mut actual_cost = 0.into();
     for e in path {
-        assert!(graph.is_adjacent(e.from(), e.to()), "{}\nOur path includes an edge from {} to {} that doesn't exist in the graph!", context, e.from(), e.to())
+        assert!(graph.is_adjacent(e.from(), e.to()), "{}\nOur path includes an edge from {} to {} that doesn't exist in the graph!", context, e.from(), e.to());
+        actual_cost = actual_cost + e.weight();
     }
+    assert_eq!(cost, actual_cost, "The path does not cost what it says it does: {} != {}", cost, actual_cost);
 }

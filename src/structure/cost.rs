@@ -109,11 +109,11 @@ impl <W: Weight> From<Option<u32>> for Cost<W> {
     }
 }
 
-impl <E, W: Weight> From<Result<u32, E>> for Cost<W> {
-    fn from(value: Result<u32, E>) -> Self {
+impl <E, W: Weight> From<Result<W, E>> for Cost<W> {
+    fn from(value: Result<W, E>) -> Self {
         match value {
             Err(_) => Infinite,
-            Ok(x) => Finite(W::from(x)),
+            Ok(x) => Finite(x),
         }
     }
 }

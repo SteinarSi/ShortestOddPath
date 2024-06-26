@@ -8,6 +8,7 @@ use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
 use crate::utility::misc::{debug, repeat};
 
+#[derive(Clone)]
 pub struct PlanarGraph<W: Weight> {
     real: UndirectedGraph<W, PlanarEdge<W>>,
     dual: UndirectedGraph<W, PlanarEdge<W>>,

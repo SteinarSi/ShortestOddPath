@@ -93,7 +93,6 @@ mod create_worst_queries {
     use std::fs::File;
     use std::io::Write;
     use crate::structure::graph::edge::BasicEdge;
-    use crate::structure::graph::planar_edge::PlanarEdge;
     use crate::structure::graph::planar_graph::PlanarGraph;
     use super::*;
 

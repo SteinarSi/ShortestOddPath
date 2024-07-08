@@ -187,7 +187,7 @@ mod create_worst_queries {
     #[ignore]
     #[test]
     fn create_worst_delaunay_queries() {
-        for i in (1000..=200_000).step_by(1000) {
+        for i in (5..=100).step_by(5) {
             let normal = format!("data/delaunay_graphs/normal_delaunay_graphs/delaunay{}/delaunay{}", i, i);
             create_worst_queries(normal.as_str(), true, false);
             let planar = format!("data/delaunay_graphs/planar_delaunay_graphs/delaunay{}/delaunay{}", i, i);

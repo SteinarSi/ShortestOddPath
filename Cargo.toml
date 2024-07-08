@@ -9,23 +9,6 @@ repository = "https://github.com/SteinarSi/ShortestOddPath.git"
 keywords = ["algorithm", "odd", "path", "network", "diversion"]
 
 [dependencies]
-criterion = "0.5.1"
 libm = "0.2.8"
 queues = "1.1.0"
 num = "0.4.1"
-
-[[bench]]
-name = "bench_odd_walk"
-harness = false
-
-[[bench]]
-name = "bench_odd_path"
-harness = false
-
-[[bench]]
-name = "bench_network_diversion"
-harness = false
-
-[[bench]]
-name = "bench_dijkstra"
-harness = false

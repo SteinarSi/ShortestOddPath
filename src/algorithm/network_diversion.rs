@@ -10,7 +10,7 @@ use crate::structure::weight::Weight;
 use crate::utility::misc::{assert_is_path, debug, repeat};
 
 pub fn network_diversion<W: Weight>(planar: &PlanarGraph<W>, s: usize, t: usize, (du, dv): (usize,usize)) -> Option<(W, Vec<PlanarEdge<W>>)> {
-    if let Some(p) = bfs(planar.real(), s, t, (du,dv)) {
+    if let Some(p) = st_path_without_d(planar.real(), s, t, (du, dv)) {
         let path = p.iter()
             .map(|e| e.rotate_right())
             .collect();
@@ -51,7 +51,7 @@ pub fn network_diversion<W: Weight>(planar: &PlanarGraph<W>, s: usize, t: usize,
     }
 }
 
-fn bfs<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize, (du,dv): (usize, usize)) -> Option<Vec<E>> {
+pub fn st_path_without_d<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize, (du,dv): (usize, usize)) -> Option<Vec<E>> {
     let mut seen = repeat(graph.n(), false);
     let mut prev: Vec<Option<E>> = repeat(graph.n(), None);
     let mut q: Queue<usize> = Queue::new();
@@ -88,7 +88,7 @@ fn bfs<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize, 
 mod visualize_diversions {
     use std::fs::File;
     use std::io::Write;
-    use crate::algorithm::network_diversion::{bfs, network_diversion};
+    use crate::algorithm::network_diversion::{st_path_without_d, network_diversion};
     use crate::structure::graph::edge::Edge;
     use crate::structure::graph::planar_graph::PlanarGraph;
 
@@ -109,7 +109,7 @@ mod visualize_diversions {
 
         let (_cost, diversion) = network_diversion(&planar, s, t, d).unwrap();
         let mut diverted = File::create([folder, "/", file, "/", file, ".diverted"].concat()).unwrap();
-        let path = bfs(planar.real(), s, t, d).unwrap();
+        let path = st_path_without_d(planar.real(), s, t, d).unwrap();
         diverted.write(format!("{} {}\n", diversion.len(), path.len()).as_bytes()).unwrap();
         for edge in diversion.clone() {
             diverted.write_all(format!("{} {}\n", edge.from(), edge.to()).as_bytes()).unwrap();

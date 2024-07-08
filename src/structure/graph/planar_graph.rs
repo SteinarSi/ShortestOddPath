@@ -275,21 +275,10 @@ mod test_planar_graph {
             "small_planar1",
             "small_planar2",
             "small_planar3",
-            "small_planar4"
+            "small_planar4",
+            "small_planar5",
         ] {
             parse("small_planar_graphs", name);
-        }
-    }
-    #[ignore = "The graphs are too large and take too much time to test over again each time."]
-    #[test]
-    fn assert_large_planarity() {
-        for name in [
-            // "CityOfOldenburg",
-            "CaliforniaRoadNetwork",
-            // "CityOfSanJoaquinCounty",
-            // "SanFranciscoRoadNetwork",
-        ] {
-            parse("real_planar_graphs", name);
         }
     }
 }

@@ -11,6 +11,7 @@ pub fn meta_test<Pr, W: Weight>(folder: &str, name: &str)
           W: Weight,
           <W as FromStr>::Err: Display + Debug,
 {
+    println!("Testing {}...", name);
     let input_path = ["data/", folder, "/", name, "/", name, ".in"].concat();
     let query_path = ["data/", folder, "/", name, "/", name, ".", &Pr::name()].concat();
     let queries: Vec<(Pr::Query, Option<Pr::Expected>)> = std::fs::read_to_string(&query_path)

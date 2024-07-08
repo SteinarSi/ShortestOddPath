@@ -1,5 +1,5 @@
 use queues::{IsQueue, Queue};
-use crate::algorithm::odd_path::shortest_odd_path;
+use crate::algorithm::shortest_odd_path::shortest_odd_path;
 use crate::algorithm::utility::split_edges;
 use crate::structure::graph::edge::Edge;
 use crate::structure::path_result::{PathResult::*};
@@ -8,6 +8,12 @@ use crate::structure::graph::planar_graph::PlanarGraph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
 use crate::utility::misc::{assert_is_path, debug, repeat};
+
+/**
+Problem: Network Diversion
+In: an planar graph G, two vertices s and t, and edge d
+Out: the cheapest set of edges to delete from the graph such that all s-t-paths must pass through d, if one exists
+*/
 
 pub fn network_diversion<W: Weight>(planar: &PlanarGraph<W>, s: usize, t: usize, (du, dv): (usize,usize)) -> Option<(W, Vec<PlanarEdge<W>>)> {
     if let Some(p) = st_path_without_d(planar.real(), s, t, (du, dv)) {

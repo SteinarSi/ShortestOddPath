@@ -2,14 +2,14 @@ mod utility;
 
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-use shortest_odd_path::algorithm::odd_walk::shortest_odd_walk;
+use shortest_odd_path::algorithm::shortest_odd_walk::shortest_odd_walk;
 use shortest_odd_path::structure::cost::{Cost, Finite, Infinite};
 use shortest_odd_path::structure::graph::edge::BasicEdge;
 use shortest_odd_path::structure::graph::undirected_graph::UndirectedGraph;
 use shortest_odd_path::structure::path_result::PathResult;
 use shortest_odd_path::structure::path_result::PathResult::{Impossible, Possible};
 use shortest_odd_path::structure::weight::Weight;
-use crate::utility::{meta_test, Problem, verify_path};
+use crate::utility::{Problem, verify_path};
 
 pub struct ShortestOddWalk;
 impl <W> Problem<W> for ShortestOddWalk
@@ -54,32 +54,37 @@ impl <W> Problem<W> for ShortestOddWalk
     }
 }
 
-fn test_walk(folder: &str, file: &str) {
-    meta_test::<ShortestOddWalk, u64>(folder, file)
-}
+mod test_shortest_odd_walk {
+    use crate::ShortestOddWalk;
+    use crate::utility::meta_test;
 
-mod small_walks {
-    use crate::test_walk;
+    fn test_walk(folder: &str, file: &str) {
+        meta_test::<ShortestOddWalk, u64>(folder, file)
+    }
 
-    fn test(name: &str) { test_walk("small_graphs", name); }
+    mod small_walks {
+        use crate::test_shortest_odd_walk::test_walk;
 
-    #[test]
-    fn small1() { test("small1"); }
-    #[test]
-    fn small2() { test("small2"); }
-    #[test]
-    fn small3() { test("small3"); }
-    #[test]
-    fn small4() { test("small4"); }
-}
+        fn test(name: &str) { test_walk("small_graphs", name); }
 
-mod medium_walks {
-    use crate::test_walk;
+        #[test]
+        fn small1() { test("small1"); }
+        #[test]
+        fn small2() { test("small2"); }
+        #[test]
+        fn small3() { test("small3"); }
+        #[test]
+        fn small4() { test("small4"); }
+    }
 
-    fn test(name: &str) { test_walk("medium_graphs", name); }
-    
-    #[test]
-    fn medium4() { test("medium4"); }
-    #[test]
-    fn medium5() { test("medium5"); }
+    mod medium_walks {
+        use crate::test_shortest_odd_walk::test_walk;
+
+        fn test(name: &str) { test_walk("medium_graphs", name); }
+
+        #[test]
+        fn medium4() { test("medium4"); }
+        #[test]
+        fn medium5() { test("medium5"); }
+    }
 }

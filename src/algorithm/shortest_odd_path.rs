@@ -27,7 +27,7 @@ pub struct DerigsAlgorithm<W: Weight, E: Edge<W>> {
 /**
 Problem: Shortest Odd Path
 In: an undirected graph G, two vertices s,t in V(G)
-Out: the shortest s-t-path in G that uses an odd number of edges, if one exists.
+Out: an s-t-path in G of minimum cost using an odd number of edges, if one exists.
 */
 
 pub fn shortest_odd_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> PathResult<W,E> {

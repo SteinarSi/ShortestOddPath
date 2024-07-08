@@ -1,4 +1,4 @@
-use crate::algorithm::odd_path::shortest_odd_path;
+use crate::algorithm::shortest_odd_path::shortest_odd_path;
 use crate::algorithm::utility::split_edges;
 use crate::structure::graph::edge::{Edge};
 use crate::structure::path_result::{PathResult, PathResult::*};
@@ -8,7 +8,7 @@ use crate::structure::weight::{Weight};
 /**
 Problem: Shortest Bottleneck Path
 In: an undirected graph G, two vertices s,t in V(G), and a 'bottleneck' edge (u,v) in E(G)
-Out: the shortest s-t-path in G that passes through (u,v), if one exists
+Out: an s-t-path in G of minimum cost that passes through (u,v), if one exists
 */
 
 pub fn shortest_bottleneck_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize, (bottle_from, bottle_to): (usize,usize)) -> PathResult<W,E> {

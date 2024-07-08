@@ -1,8 +1,8 @@
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-use shortest_odd_path::algorithm::odd_path::shortest_odd_path;
+use shortest_odd_path::algorithm::shortest_odd_path::shortest_odd_path;
 use shortest_odd_path::structure::cost::{Cost, Finite, Infinite};
-use shortest_odd_path::structure::graph::edge::{BasicEdge, Edge};
+use shortest_odd_path::structure::graph::edge::BasicEdge;
 use shortest_odd_path::structure::graph::undirected_graph::UndirectedGraph;
 use shortest_odd_path::structure::path_result::PathResult;
 use shortest_odd_path::structure::path_result::PathResult::{Impossible, Possible};
@@ -60,7 +60,7 @@ impl <W> Problem<W> for ShortestOddPath
     }
 }
 
-mod test_odd_path {
+mod test_shortest_odd_path {
     use shortest_odd_path::utility::misc::debug;
     use crate::ShortestOddPath;
     use crate::utility::meta_test;
@@ -71,7 +71,7 @@ mod test_odd_path {
     }
 
     mod small_paths {
-        use crate::test_odd_path::test_path;
+        use crate::test_shortest_odd_path::test_path;
 
         fn test(name: &str) { test_path("small_graphs", name); }
 
@@ -91,7 +91,7 @@ mod test_odd_path {
         fn small7() { test("small7"); }
     }
     mod medium_paths {
-        use crate::test_odd_path::test_path;
+        use crate::test_shortest_odd_path::test_path;
 
         fn test(name: &str) { test_path("medium_graphs", name); }
 
@@ -109,7 +109,7 @@ mod test_odd_path {
         fn medium6() { test("medium6"); }
     }
     mod large_paths {
-        use crate::test_odd_path::test_path;
+        use crate::test_shortest_odd_path::test_path;
 
         fn test(name: &str) { test_path("large_graphs", name); }
 
@@ -121,7 +121,7 @@ mod test_odd_path {
         fn large3() { test("large3"); }
     }
     mod special_paths {
-        use crate::test_odd_path::test_path;
+        use crate::test_shortest_odd_path::test_path;
 
         fn test(name: &str) { test_path("special_graphs", name); }
         #[test]
@@ -132,7 +132,7 @@ mod test_odd_path {
         fn grid5() { test("grid5"); }
     }
     mod counter_paths {
-        use crate::test_odd_path::test_path;
+        use crate::test_shortest_odd_path::test_path;
         fn test(name: &str) { test_path("counter_graphs", name); }
 
         #[test]

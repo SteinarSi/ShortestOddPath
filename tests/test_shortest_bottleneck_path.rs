@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-use shortest_odd_path::algorithm::bottleneck_path::shortest_bottleneck_path;
+use shortest_odd_path::algorithm::shortest_bottleneck_path::shortest_bottleneck_path;
 use shortest_odd_path::structure::cost::{Cost, Finite, Infinite};
 use shortest_odd_path::structure::graph::edge::{BasicEdge, Edge};
 use shortest_odd_path::structure::graph::undirected_graph::UndirectedGraph;

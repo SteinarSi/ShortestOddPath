@@ -9,6 +9,11 @@ use crate::structure::path_result::PathResult::{Impossible, Possible};
 use crate::structure::weight::{Order, Weight};
 use crate::utility::misc::repeat;
 
+/**
+Problem: Shortest Path
+In: an undirected graph G, two vertices s and t
+Out: an s-t-path in G of minimum cost, if one exists
+*/
 pub fn shortest_path<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s: usize, t: usize) -> PathResult<W,E> {
     let mut dist = repeat(graph.n(), Infinite);
     let mut done = repeat(graph.n(), false);
@@ -66,6 +71,13 @@ pub fn all_shortest_paths<W: Weight, E: Edge<W>>(graph: &UndirectedGraph<W,E>, s
     dist
 }
 
+/**
+Problem: Single Source All Shortest Paths
+In: an undirected graph G, a source vertex s
+Out: the minimum number of edges necessary to reach each vertex
+
+Alternatively, the cost of the shortest path if we ignore the weights.
+*/
 pub fn bfs<W,E>(graph: &UndirectedGraph<W,E>, s: usize) -> Vec<Cost<u64>>
     where W: Weight,
           E: Edge<W>,

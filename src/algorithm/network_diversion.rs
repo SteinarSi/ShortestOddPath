@@ -7,7 +7,7 @@ use crate::structure::graph::planar_edge::PlanarEdge;
 use crate::structure::graph::planar_graph::PlanarGraph;
 use crate::structure::graph::undirected_graph::UndirectedGraph;
 use crate::structure::weight::Weight;
-use crate::utility::misc::{debug, repeat};
+use crate::utility::misc::{assert_is_path, debug, repeat};
 
 pub fn network_diversion<W: Weight>(planar: &PlanarGraph<W>, s: usize, t: usize, (du, dv): (usize,usize)) -> Option<(W, Vec<PlanarEdge<W>>)> {
     if let Some(p) = bfs(planar.real(), s, t, (du,dv)) {
@@ -27,6 +27,11 @@ pub fn network_diversion<W: Weight>(planar: &PlanarGraph<W>, s: usize, t: usize,
             Possible {cost, path} => {
                 let mapped: Vec<PlanarEdge<W>> = path.iter().flat_map(|e| map(e)).collect();
                 let rotated: Vec<PlanarEdge<W>> = mapped.iter().map(|e| e.rotate_right()).collect();
+
+                // TODO: delete this when the bug is fixed
+                assert_is_path(&path);
+                assert_is_path(&mapped);
+                
                 debug(format!("We have to cut {} edges to divert the network, with a total cost of {}.", path.len(), cost));
                 if path.len() < 15 {
                     debug(format!("Dual diversion set: {:?}", mapped));
@@ -41,7 +46,7 @@ pub fn network_diversion<W: Weight>(planar: &PlanarGraph<W>, s: usize, t: usize,
         }
     }
     else {
-        debug(format!("Could not find any s-t-path that doesn't use the diversion edge, no diversion is needed."));
+        debug("Could not find any s-t-path that doesn't use the diversion edge, no diversion is needed.".to_string());
         Some((0.into(), Vec::new()))
     }
 }
@@ -104,15 +109,14 @@ mod visualize_diversions {
 
         let (_cost, diversion) = network_diversion(&planar, s, t, d).unwrap();
         let mut diverted = File::create([folder, "/", file, "/", file, ".diverted"].concat()).unwrap();
+        let path = bfs(planar.real(), s, t, d).unwrap();
+        diverted.write(format!("{} {}\n", diversion.len(), path.len()).as_bytes()).unwrap();
         for edge in diversion.clone() {
             diverted.write_all(format!("{} {}\n", edge.from(), edge.to()).as_bytes()).unwrap();
         }
-
-        let mut diverted = planar.real().clone();
-        diverted.delete_edges(&diversion);
-
-        let path = bfs(&diverted, s, t, d);
-        assert!(path.is_none());
+        for edge in path {
+            diverted.write_all(format!("{} {}\n", edge.from(), edge.to()).as_bytes()).unwrap();
+        }
     }
     
     #[test]
@@ -120,5 +124,10 @@ mod visualize_diversions {
     fn visualize_delaunay35() {
         visualize("data/delaunay_graphs/planar_delaunay_graphs", "delaunay35");
     }
-}
 
+    #[test]
+    #[ignore = "This is just for visualization purposes, so we can make nice plots for the report :)"]
+    fn visualize_delaunay50() {
+        visualize("data/delaunay_graphs/planar_delaunay_graphs", "delaunay50");
+    }
+}

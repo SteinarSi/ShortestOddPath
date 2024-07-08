@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 use std::str;
@@ -51,8 +51,10 @@ impl <W: Weight, E: Edge<W>> UndirectedGraph<W,E> {
     }
     pub fn delete_edges(&mut self, r: &Vec<E>) {
         for e in r {
+            let len_before = self.adj_list[e.from()].len();
             self.adj_list[e.from()].retain(|f| f.to() != e.to());
-            self.adj_list[e.to()].retain(|f| f.to() != e.from())
+            self.m -= len_before - self.adj_list[e.from()].len();
+            self.adj_list[e.to()].retain(|f| f.to() != e.from());
         }
     }
     #[allow(non_snake_case)]
@@ -116,9 +118,29 @@ impl <W,E> Debug for UndirectedGraph<W,E>
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut ret = String::new();
         ret.push_str(format!("UndirectedGraph(n = {}, m = {}):\n", self.n, self.m).as_str());
-        for u in self.vertices().take(15) {
+        self.vertices().for_each(|u| {
             ret.push_str(format!("  N({}) = {:?}\n", u, self[&u]).as_str());
-        }
+        });
         write!(f, "{}", ret)
+    }
+}
+
+impl <W:Weight,E:Edge<W>> Display for UndirectedGraph<W,E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut ret = String::new();
+        ret.push_str(format!("{} {}\n", self.n(), self.m()).as_str());
+        for u in self.vertices() {
+            for e in &self[u] {
+                if u < e.to() {
+                    if e.weight() != 1.into() {
+                        ret.push_str(format!("{} {} {}\n", u, e.to(), e.weight()).as_str())
+                    }
+                    else {
+                        ret.push_str(format!("{} {}\n", u, e.to()).as_str());
+                    }
+                }
+            }
+        }
+        f.write_str(ret.as_str())
     }
 }

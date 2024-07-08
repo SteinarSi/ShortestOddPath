@@ -50,13 +50,18 @@ impl <W> Problem<W> for NetworkDiversion
         if let Some((_, diversion)) = out {
             let mut g = planar.real().clone();
             let mut bottleneck = g.find_edges(du, dv);
+
+            let connected = bfs(&g, s)[t].is_finite();
+            assert!(connected, "{}\nNo {}-{}-paths exists, but we found a diversion anyway.", context, s, t);
+
             g.delete_edges(diversion);
-            let dist_before = bfs(&g, s);
-            assert!(dist_before[t].is_finite());
+            let non_blocking = bfs(&g, s)[t].is_finite();
+            assert!(non_blocking, "{}\nThe diversion set is not minimal, and blocks off all {}-{}-paths even without the diversion edge.", context, s, t);
+
             bottleneck.extend(diversion.clone());
             g.delete_edges(&bottleneck);
-            let dist_after = bfs(&g, s);
-            assert!(dist_after[t].is_infinite());
+            let is_bridge = bfs(&g, s)[t].is_infinite();
+            assert!(is_bridge, "{}\nThe diversion edge is not a bridge, removing it does not block all {}-{}-paths", context, s, t);
         }
     }
 
@@ -66,20 +71,52 @@ impl <W> Problem<W> for NetworkDiversion
 }
 
 #[cfg(test)]
-mod small_planar {
-    use crate::NetworkDiversion;
-    use crate::utility::meta_test;
+mod test_network_diversion {
+    mod small_planar_diversions {
+        use crate::NetworkDiversion;
+        use crate::utility::meta_test;
 
-    fn test_diversion(name: &str) {
-        meta_test::<NetworkDiversion, f64>("planar_graphs/small_planar_graphs", name);
+        fn test_diversion(name: &str) {
+            meta_test::<NetworkDiversion, f64>("planar_graphs/small_planar_graphs", name);
+        }
+
+        #[test]
+        fn small_planar1() { test_diversion("small_planar1"); }
+
+        #[test]
+        fn small_planar2() { test_diversion("small_planar2"); }
+
+        #[test]
+        fn small_planar3() { test_diversion("small_planar3"); }
+
+        #[test]
+        fn small_planar4() { test_diversion("small_planar4"); }
+
+        #[test]
+        fn small_planar5() { test_diversion("small_planar5"); }
     }
+    
+    mod delaunay_diversions {
+        use crate::NetworkDiversion;
+        use crate::utility::meta_test;
 
-    #[test]
-    fn small_planar1() { test_diversion("small_planar1"); }
-    #[test]
-    fn small_planar2() { test_diversion("small_planar2"); }
-    #[test]
-    fn small_planar3() { test_diversion("small_planar3"); }
-    #[test]
-    fn small_planar4() { test_diversion("small_planar4"); }
+        fn test_delaunay(i: usize) {
+            meta_test::<NetworkDiversion, f64>(
+                "delaunay_graphs/planar_delaunay_graphs",
+                ["delaunay", &i.to_string()].concat().as_str()
+            );
+        }
+
+        #[test]
+        fn all_delaunay_diversions() {
+            (5..=100)
+                .step_by(5)
+                .for_each(test_delaunay)
+        }
+        
+        #[test]
+        fn delaunay50() {
+            test_delaunay(50);
+        }
+    }
 }
